@@ -51,7 +51,8 @@ const Gallery = (() => {
     items.forEach(item => {
       const div = document.createElement('div');
       div.className = 'gallery-item';
-      div.onclick = () => _openLightbox(item.thumbnail || item.path || '', isVideo);
+      const isVideoItem = isVideo || item.isVideo;
+      div.onclick = () => _openLightbox(item.thumbnail || item.path || "", isVideoItem, item.id);
 
       const thumbSrc = item.thumbnail
         ? _streamUrl(item.thumbnail)
@@ -75,16 +76,44 @@ const Gallery = (() => {
   }
 
   function _streamUrl(path) {
-    if (!path) return '';
-    if (path.startsWith('http') || path.startsWith('data:')) return path;
+    if (!path) return "";
+    if (path.startsWith("http") || path.startsWith("data:")) return path;
+    return API.getProxyUrl(path);
+  }
     return path;
   }
 
-  function _openLightbox(src, isVideo) {
-    const lb = document.getElementById('lightbox');
-    const img = document.getElementById('lightbox-img');
-    img.src = src;
-    lb.classList.remove('hidden');
+  function _openLightbox(src, isVideo, id) {
+    const lb = document.getElementById("lightbox");
+    lb.innerHTML = "";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "lightbox-close";
+    closeBtn.innerHTML = "×";
+    lb.appendChild(closeBtn);
+
+    if (isVideo) {
+      const videoUrl = API.getProxyUrl("/stream/file?path=/sdcard/DCIM/Camera/" + id + ".mp4"); // Fallback simple logic, ideal is using actual path
+      // Instead of guessing path, we will modify the MediaHandler to give full path in streamUrl.
+      // For now, assume src contains the thumbnail path, we change it to stream file
+      const fileUrl = src.replace("/stream/thumbnail", "/stream/file");
+      const vid = document.createElement("video");
+      vid.src = _streamUrl(fileUrl);
+      vid.controls = true;
+      vid.autoplay = true;
+      vid.style.maxWidth = "90%";
+      vid.style.maxHeight = "90%";
+      lb.appendChild(vid);
+    } else {
+      // For images, we can fetch high res if we modify the path, but thumbnail is okay for preview
+      const img = document.createElement("img");
+      const fileUrl = src.replace("/stream/thumbnail", "/stream/file");
+      img.src = _streamUrl(fileUrl);
+      img.id = "lightbox-img";
+      lb.appendChild(img);
+    }
+    lb.classList.remove("hidden");
+  }
   }
 
   function destroy() {}
