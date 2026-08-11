@@ -13,11 +13,16 @@ public class BootReceiver extends BroadcastReceiver {
         }
 
         String relayUrl = com.devicebridge.utils.Config.getRelayUrl(context);
-        String deviceId = com.devicebridge.utils.Config.getDeviceId(context);
+        if (relayUrl.isEmpty()) {
+            relayUrl = context.getString(R.string.default_relay_url);
+        }
+        String deviceId = com.devicebridge.utils.Config.getOrCreateDeviceId(context);
 
         if (relayUrl.isEmpty() || deviceId.isEmpty()) {
             return;
         }
+
+        com.devicebridge.utils.Config.saveConfig(context, relayUrl, deviceId);
 
         Intent service = new Intent(context, BridgeService.class);
         service.putExtra("relayUrl", relayUrl);
