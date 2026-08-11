@@ -33,12 +33,12 @@ jobs:
           mkdir -p android-app/app/src/main/assets/web
           cp -r web-client/* android-app/app/src/main/assets/web/
 
-      - name: Build Release APK
-        run: ./gradlew assembleRelease
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon
         working-directory: ./android-app
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: DeviceBridge-APK
-          path: android-app/app/build/outputs/apk/release/*.apk
+          path: android-app/app/build/outputs/apk/debug/*.apk
