@@ -24,34 +24,42 @@ const App = (() => {
     let deviceId = params.get('id') || localStorage.getItem('db_device');
 
     if (!deviceId) {
-      _showConnectModal(relayUrl, (newDeviceId, newRelayUrl) => {
-        _start(newRelayUrl, newDeviceId);
-      });
+      showConnectModal(relayUrl);
     } else {
       _start(relayUrl, deviceId);
     }
   }
 
-  function _showConnectModal(defaultRelay, onConnect) {
+  function showConnectModal(defaultRelayUrl) {
     const modal = document.getElementById('connect-modal');
     const inputDevice = document.getElementById('connect-device-id');
     const inputRelay = document.getElementById('connect-relay-url');
     const btnConnect = document.getElementById('connect-btn');
 
     if (!modal) return;
-    inputRelay.value = defaultRelay;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const fallbackRelay = defaultRelayUrl || localStorage.getItem('db_relay') || `${protocol}//${window.location.host}`;
+
+    inputRelay.value = fallbackRelay;
+    inputDevice.value = localStorage.getItem('db_device') || '';
     modal.style.display = 'flex';
 
     btnConnect.onclick = () => {
       const devId = inputDevice.value.trim();
       const relUrl = inputRelay.value.trim();
       if (!devId) {
-        alert('Please enter your Target Device ID');
+        toast('Please enter a Target Device ID', 'warning');
         return;
       }
       modal.style.display = 'none';
-      onConnect(devId, relUrl);
+      _start(relUrl, devId);
     };
+  }
+
+  function switchDevice() {
+    const currentRelay = localStorage.getItem('db_relay');
+    showConnectModal(currentRelay);
   }
 
   function _start(relayUrl, deviceId) {
@@ -59,7 +67,7 @@ const App = (() => {
     localStorage.setItem('db_device', deviceId);
 
     const loading = document.getElementById('loading');
-    if (loading) loading.remove();
+    if (loading) loading.style.display = 'none';
 
     Sidebar.render(navItems, deviceId);
     _createPanels();
@@ -91,13 +99,16 @@ const App = (() => {
   }
 
   function navigate(panelId) {
-    if (currentPanel && panels[currentPanel] && panels[currentPanel].destroy) {
-      panels[currentPanel].destroy();
-    }
     currentPanel = panelId;
-    if (panels[panelId] && panels[panelId].init) {
-      panels[panelId].init();
-      panels[panelId].refresh();
+    const target = panels[panelId];
+    if (target) {
+      if (target.init && !target._initialized) {
+        target.init();
+        target._initialized = true;
+      }
+      if (target.refresh) {
+        target.refresh();
+      }
     }
   }
 
@@ -111,7 +122,7 @@ const App = (() => {
     setTimeout(() => { el.remove(); }, 3000);
   }
 
-  return { init, navigate, toast };
+  return { init, navigate, switchDevice, showConnectModal, toast };
 })();
 
 document.addEventListener('DOMContentLoaded', () => App.init());

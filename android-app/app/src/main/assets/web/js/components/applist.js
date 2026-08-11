@@ -14,7 +14,7 @@ const AppList = (() => {
         </table>
       </div>
       <div id="app-empty" class="empty-state" style="display:none">
-        <div class="icon-lg">📱</div>
+        <div class="icon-lg"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
         <p>No apps found</p>
       </div>
     `;
@@ -41,7 +41,7 @@ const AppList = (() => {
     const sorted = apps.sort((a, b) => (a.name || a.packageName).localeCompare(b.name || b.packageName));
     tbody.innerHTML = sorted.map(a => `
       <tr>
-        <td>${a.icon ? `<img src="${_esc(a.icon)}" width="28" height="28" style="border-radius:6px" alt="">` : '📱'}</td>
+        <td>${a.icon ? `<img src="${_esc(a.icon)}" width="28" height="28" style="border-radius:6px" alt="">` : '<span style="color:var(--text-muted)">•</span>'}</td>
         <td>${_esc(a.name || a.packageName || 'Unknown')}</td>
         <td style="font-family:monospace;font-size:0.75rem">${_esc(a.packageName || '-')}</td>
         <td>${_esc(a.version || '-')}</td>

