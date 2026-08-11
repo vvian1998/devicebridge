@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.devicebridge'
+    namespace 'com.hashibridge.master'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.devicebridge"
+        applicationId "com.hashibridge.master"
         minSdk 24
         targetSdk 34
         versionCode 1

@@ -59,7 +59,7 @@
         android:layout_below="@id/header_bar"
         android:padding="8dp">
 
-        <com.devicebridge.game.BridgeGameView
+        <com.hashibridge.master.game.BridgeGameView
             android:id="@+id/game_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />

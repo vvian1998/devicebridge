@@ -19,7 +19,7 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <com.devicebridge.game.BridgeGameView
+        <com.hashibridge.master.game.BridgeGameView
             android:id="@+id/game_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
