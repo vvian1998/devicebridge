@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0A0E17">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Bridge Master"
+        android:textColor="#3B82F6"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:padding="16dp" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <com.devicebridge.game.BridgeGameView
+            android:id="@+id/game_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/tv_hud"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Tap two islands to build a bridge"
+        android:textColor="#94A3B8"
+        android:textSize="13sp"
+        android:padding="12dp"
+        android:layout_gravity="center_horizontal" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/btn_new_game"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="New Game"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#3B82F6"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btn_back"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Back"
+            android:textColor="#E2E8F0"
+            android:backgroundTint="#1E2D3D" />
+
+    </LinearLayout>
+
+</LinearLayout>

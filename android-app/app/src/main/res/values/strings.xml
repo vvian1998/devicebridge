@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DeviceBridge</string>
+    <string name="default_relay_url">wss://devicebridge-relay.onrender.com</string>
+</resources>

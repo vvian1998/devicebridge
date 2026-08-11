@@ -1,0 +1,44 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        working-directory: ./android-app
+
+      - name: Copy web-client into assets
+        run: |
+          mkdir -p android-app/app/src/main/assets/web
+          cp -r web-client/* android-app/app/src/main/assets/web/
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+        working-directory: ./android-app
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeviceBridge-APK
+          path: android-app/app/build/outputs/apk/release/*.apk
