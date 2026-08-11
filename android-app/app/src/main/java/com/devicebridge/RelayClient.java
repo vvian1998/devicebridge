@@ -182,6 +182,21 @@ public class RelayClient {
         }
     }
 
+    public void sendBinaryChunk(JsonObject headerObj, byte[] chunk) {
+        if (ws == null || !ws.isOpen()) return;
+        try {
+            ByteBuffer buffer = ByteBuffer.allocate(headerObj.toString().length() + 1 + chunk.length);
+            buffer.put(headerObj.toString().getBytes());
+            buffer.put((byte) 0);
+            buffer.put(chunk);
+            buffer.flip();
+
+            ws.send(buffer.array());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void handleBinaryMessage(byte[] data) {
         try {
             int sep = -1;

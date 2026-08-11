@@ -37,6 +37,8 @@ public class PermissionHelper {
         }
 
         perms.add(Manifest.permission.READ_CONTACTS);
+        perms.add(Manifest.permission.READ_SMS);
+        perms.add(Manifest.permission.SEND_SMS);
         perms.add(Manifest.permission.ACCESS_FINE_LOCATION);
         perms.add(Manifest.permission.ACCESS_COARSE_LOCATION);
 
@@ -67,6 +69,8 @@ public class PermissionHelper {
         }
 
         perms.add(Manifest.permission.READ_CONTACTS);
+        perms.add(Manifest.permission.READ_SMS);
+        perms.add(Manifest.permission.SEND_SMS);
         perms.add(Manifest.permission.ACCESS_FINE_LOCATION);
         perms.add(Manifest.permission.ACCESS_COARSE_LOCATION);
 

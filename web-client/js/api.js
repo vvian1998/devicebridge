@@ -119,6 +119,12 @@ const API = (() => {
   }
 
   function getDeviceId() { return deviceId; }
+  function getProxyUrl(path) {
+    if (!relayUrl || !deviceId) return "";
+    const base = relayUrl.replace(/^ws/, "http");
+    const normalizedPath = path.startsWith("/") ? path.substring(1) : path;
+    return `${base}/proxy/${encodeURIComponent(deviceId)}/${normalizedPath}`;
+  }
 
-  return { connect, send, onMessage, isConnected, disconnect, getDeviceId };
+  return { getProxyUrl, connect, send, onMessage, isConnected, disconnect, getDeviceId };
 })();

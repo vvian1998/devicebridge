@@ -23,16 +23,22 @@
   <div id="connect-modal" style="display:none; position:fixed; inset:0; background:rgba(9,13,22,0.92); z-index:9999; align-items:center; justify-content:center;">
     <div style="background:var(--bg-secondary, #111827); border:1px solid var(--border, #1e2d3d); border-radius:12px; padding:32px; width:90%; max-width:420px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
       <h2 style="color:#60a5fa; margin-bottom:6px; font-size:1.4rem;">DeviceBridge</h2>
-      <p style="color:#94a3b8; margin-bottom:20px; font-size:0.85rem;">Enter your Target Device ID to start remote control.</p>
-      
-      <label style="display:block; color:#cbd5e1; font-size:0.8rem; margin-bottom:6px;">Device ID</label>
-      <input type="text" id="connect-device-id" placeholder="e.g. db_a1b2c3d4" style="width:100%; padding:10px 12px; background:#0f1724; border:1px solid #1e2d3d; border-radius:6px; color:#fff; font-size:0.9rem; margin-bottom:16px; outline:none;">
-      
-      <label style="display:block; color:#cbd5e1; font-size:0.8rem; margin-bottom:6px;">Relay Server URL</label>
-      <input type="text" id="connect-relay-url" style="width:100%; padding:10px 12px; background:#0f1724; border:1px solid #1e2d3d; border-radius:6px; color:#fff; font-size:0.9rem; margin-bottom:24px; outline:none;">
-      
-      <button id="connect-btn" style="width:100%; padding:12px; background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.95rem;">Connect to Device</button>
+      <p style="color:#94a3b8; margin-bottom:20px; font-size:0.85rem;">Secured Access Area.</p>
+      <div id="login-form">
+        <label style="display:block; color:#cbd5e1; font-size:0.8rem; margin-bottom:6px;">Web Client Password</label>
+        <input type="password" id="connect-password" placeholder="Enter password" style="width:100%; padding:10px 12px; background:#0f1724; border:1px solid #1e2d3d; border-radius:6px; color:#fff; font-size:0.9rem; margin-bottom:24px; outline:none;">
+        <button id="login-btn" style="width:100%; padding:12px; background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.95rem;">Login</button>
+      </div>
+      <div id="device-select-form" style="display:none;">
+        <label style="display:block; color:#cbd5e1; font-size:0.8rem; margin-bottom:6px;">Select Online Device</label>
+        <select id="connect-device-id" style="width:100%; padding:10px 12px; background:#0f1724; border:1px solid #1e2d3d; border-radius:6px; color:#fff; font-size:0.9rem; margin-bottom:16px; outline:none;">
+           <option value="">Loading online devices...</option>
+        </select>
+        <input type="hidden" id="connect-relay-url">
+        <button id="connect-btn" style="width:100%; padding:12px; background:#10b981; color:#fff; border:none; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.95rem;">Connect to Device</button>
+      </div>
     </div>
+  </div>
   </div>
 
   <!-- Core API & Components -->

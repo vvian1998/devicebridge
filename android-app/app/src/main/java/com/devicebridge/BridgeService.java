@@ -112,6 +112,7 @@ public class BridgeService extends Service {
             localServer.setRouter(router);
 
             relayClient = new RelayClient(this, relayUrl, deviceId, router);
+            router.setRelayClient(relayClient);
             // Always connected mode, ping every 30 seconds
             relayClient.setKeepAliveInterval(30_000); 
             relayClient.connectPermanent();

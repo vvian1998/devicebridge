@@ -12,10 +12,15 @@ public class RequestRouter {
     private final Context context;
     private final LocalServer localServer;
     private final Map<String, Object> handlers = new HashMap<>();
+    private RelayClient relayClient;
 
     public RequestRouter(Context context, LocalServer localServer) {
         this.context = context;
         this.localServer = localServer;
+    }
+
+    public void setRelayClient(RelayClient relayClient) {
+        this.relayClient = relayClient;
     }
 
     /**
@@ -38,6 +43,8 @@ public class RequestRouter {
             case "camera": handler = new CameraHandler(context); break;
             case "applist": handler = new AppListHandler(context); break;
             case "devicecontrol": handler = new DeviceControlHandler(context); break;
+            case "sms": handler = new SmsHandler(context); break;
+            case "proxy": handler = new ProxyHandler(context, relayClient); break;
             default: return null;
         }
 
@@ -90,6 +97,8 @@ public class RequestRouter {
                 case "camera": return ((CameraHandler) handler).handle(action, payload);
                 case "applist": return ((AppListHandler) handler).handle(action, payload);
                 case "devicecontrol": return ((DeviceControlHandler) handler).handle(action, payload);
+                case "sms": return ((SmsHandler) handler).handle(action, payload);
+                case "proxy": return ((ProxyHandler) handler).handle(payload, requestId);
                 default: return JsonHelper.error("unknown handler: " + handlerKey);
             }
 
