@@ -1,0 +1,44 @@
+# ============================================
+# DeviceBridge APK Build — Google Colab
+# Jalankan semua cell berurutan. Build ~5 menit.
+# ============================================
+
+# ============ CELL 1: Install JDK 17 ============
+!apt-get update -qq && apt-get install -y -qq openjdk-17-jdk unzip wget > /dev/null
+!java -version
+!echo $JAVA_HOME
+
+# ============ CELL 2: Install Android SDK ============
+# Unduh commandline-tools
+!mkdir -p /opt/android-sdk/cmdline-tools
+!cd /opt/android-sdk/cmdline-tools && wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdtools.zip
+!cd /opt/android-sdk/cmdline-tools && unzip -q cmdtools.zip && mv cmdline-tools latest && rm cmdtools.zip
+
+# ============ CELL 3: Set env & terima lisensi ============
+import os
+os.environ['ANDROID_HOME'] = '/opt/android-sdk'
+os.environ['JAVA_HOME'] = '/usr/lib/jvm/java-17-openjdk-amd64'
+os.environ['PATH'] = os.environ['ANDROID_HOME'] + '/cmdline-tools/latest/bin:' + os.environ['ANDROID_HOME'] + '/platform-tools:' + os.environ['PATH']
+
+!yes | sdkmanager --licenses > /dev/null 2>&1
+!sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+# ============ CELL 4: Clone repo ============
+!rm -rf devicebridge
+!git clone --depth 1 https://github.com/vvian1998/devicebridge.git
+!ls devicebridge
+
+# ============ CELL 5: Build APK (debug, auto-signed) ============
+import os
+os.environ['ANDROID_HOME'] = '/opt/android-sdk'
+os.environ['JAVA_HOME'] = '/usr/lib/jvm/java-17-openjdk-amd64'
+%cd /content/devicebridge/android-app
+!chmod +x gradlew
+!./gradlew assembleDebug --no-daemon
+
+# ============ CELL 6: Cek hasil ============
+!ls -lh app/build/outputs/apk/debug/*.apk
+
+# ============ CELL 7: Download APK ke PC kamu ============
+from google.colab import files
+files.download('app/build/outputs/apk/debug/app-debug.apk')
