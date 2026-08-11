@@ -2,15 +2,52 @@ const express = require('express');
 const http = require('http');
 const { WebSocketServer } = require('ws');
 const path = require('path');
+const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3000;
 const WS_PORT = process.env.WS_PORT || PORT;
 
-const app = express();
+// Password for web client access. Set WEB_PASSWORD env var. Disabled if empty.
+const WEB_PASSWORD = process.env.WEB_PASSWORD || '';
 
+const app = express();
+app.use(express.json());
+
+function authRequired(req, res, next) {
+  if (!WEB_PASSWORD) return next();
+  const token = req.headers['x-auth-token'];
+  const provided = req.query.token;
+  const ok = (token && token === WEB_PASSWORD) || (provided && provided === WEB_PASSWORD);
+  if (!ok) return res.status(401).json({ error: 'unauthorized' });
+  return next();
+}
+
+// Static assets are public; the app JS itself is harmless. Device data stays gated behind auth.
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
+app.post('/api/login', (req, res) => {
+  if (!WEB_PASSWORD) {
+    return res.json({ ok: true, token: '' });
+  }
+  const { password } = req.body || {};
+  if (password === WEB_PASSWORD) {
+    return res.json({ ok: true, token: WEB_PASSWORD });
+  }
+  return res.status(401).json({ ok: false, error: 'invalid password' });
+});
+
+app.get('/api/devices', authRequired, (_req, res) => {
+  const online = [];
+  for (const [key, ws] of clients.entries()) {
+    if (key.endsWith(':device') && ws.readyState === 1) {
+      online.push({ deviceId: key.replace(/:device$/, '') });
+    }
+  }
+  online.sort((a, b) => a.deviceId.localeCompare(b.deviceId));
+  res.json({ devices: online });
+});
 
 const server = http.createServer(app);
 

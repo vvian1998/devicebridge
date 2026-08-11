@@ -33,6 +33,10 @@ const App = (() => {
 
   function showConnectModal(defaultRelayUrl) {
     const modal = document.getElementById('connect-modal');
+    const loginForm = document.getElementById('login-form');
+    const deviceForm = document.getElementById('device-select-form');
+    const passwordInput = document.getElementById('connect-password');
+    const loginBtn = document.getElementById('login-btn');
     const inputDevice = document.getElementById('connect-device-id');
     const inputRelay = document.getElementById('connect-relay-url');
     const btnConnect = document.getElementById('connect-btn');
@@ -46,16 +50,72 @@ const App = (() => {
     inputDevice.value = localStorage.getItem('db_device') || '';
     modal.style.display = 'flex';
 
+    const showLogin = () => {
+      if (loginForm) loginForm.style.display = 'block';
+      if (deviceForm) deviceForm.style.display = 'none';
+      if (passwordInput) passwordInput.focus();
+    };
+
+    const showDevices = () => {
+      if (loginForm) loginForm.style.display = 'none';
+      if (deviceForm) deviceForm.style.display = 'block';
+      loadDevices();
+    };
+
+    const loadDevices = () => {
+      const httpBase = inputRelay.value.trim().replace(/^ws/, 'http');
+      fetch(`${httpBase}/api/devices`, {
+        headers: { 'x-auth-token': localStorage.getItem('db_token') || '' }
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (!d.devices || !d.devices.length) {
+            inputDevice.innerHTML = '<option value="">No devices online</option>';
+          } else {
+            inputDevice.innerHTML = '<option value="">Select a device...</option>' +
+              d.devices.map(x => `<option value="${x.deviceId}">${x.deviceId}</option>`).join('');
+          }
+        })
+        .catch(() => {
+          inputDevice.innerHTML = '<option value="">Failed to load devices</option>';
+        });
+    };
+
+    if (loginBtn) {
+      loginBtn.onclick = async () => {
+        const pw = passwordInput ? passwordInput.value.trim() : '';
+        try {
+          const r = await fetch(`${inputRelay.value.trim().replace(/^ws/, 'http')}/api/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pw })
+          });
+          const j = await r.json();
+          if (j.ok) {
+            if (j.token) localStorage.setItem('db_token', j.token);
+            showDevices();
+          } else {
+            toast('Invalid password', 'warning');
+          }
+        } catch (e) {
+          // No auth configured on server
+          showDevices();
+        }
+      };
+    }
+
     btnConnect.onclick = () => {
       const devId = inputDevice.value.trim();
       const relUrl = inputRelay.value.trim();
       if (!devId) {
-        toast('Please enter a Target Device ID', 'warning');
+        toast('Please select a Target Device', 'warning');
         return;
       }
       modal.style.display = 'none';
       _start(relUrl, devId);
     };
+
+    showLogin();
   }
 
   function switchDevice() {
