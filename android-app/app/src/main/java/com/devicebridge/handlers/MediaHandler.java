@@ -83,9 +83,12 @@ public class MediaHandler {
                 lastDate = c.getString(3);
 
                 boolean isVideoType = type.equals("videos");
-                item.addProperty("thumbnail",
-                        "/stream/thumbnail?id=" + c.getLong(0) +
-                        (isVideoType ? "&type=videos" : ""));
+                byte[] thumbBytes = getThumbnailBytes(context, c.getLong(0), isVideoType);
+                if (thumbBytes != null) {
+                    item.addProperty("thumbnail", "data:image/jpeg;base64," + java.util.Base64.getEncoder().encodeToString(thumbBytes));
+                } else {
+                    item.addProperty("thumbnail", "");
+                }
 
                 items.add(item);
             }

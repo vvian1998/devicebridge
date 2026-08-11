@@ -33,18 +33,27 @@ public class FileHandler {
     }
 
     private String listDir(JsonObject payload) {
-        String path = payload.has("path") ? payload.get("path").getAsString() : "/sdcard/";
+        String path = payload.has("path") ? payload.get("path").getAsString() : null;
+        if (path == null || path.trim().isEmpty() || path.equals("/")) {
+            path = android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
+        }
         File dir = new File(path);
-
-        JsonObject result = new JsonObject();
-        JsonArray files = new JsonArray();
-
         if (!dir.exists() || !dir.isDirectory()) {
-            result.add("files", files);
-            return JsonHelper.success(result);
+            dir = android.os.Environment.getExternalStorageDirectory();
+            path = dir.getAbsolutePath();
         }
 
+        JsonObject result = new JsonObject();
+        result.addProperty("path", path);
+        JsonArray files = new JsonArray();
+
         File[] list = dir.listFiles();
+        if (list == null && !path.equals(android.os.Environment.getExternalStorageDirectory().getAbsolutePath())) {
+            dir = android.os.Environment.getExternalStorageDirectory();
+            path = dir.getAbsolutePath();
+            list = dir.listFiles();
+            result.addProperty("path", path);
+        }
         if (list != null) {
             Arrays.sort(list, (a, b) -> {
                 if (a.isDirectory() && !b.isDirectory()) return -1;
