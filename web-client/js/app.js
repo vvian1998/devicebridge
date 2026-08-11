@@ -6,6 +6,7 @@ const App = (() => {
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
     { id: 'filemanager', label: 'Files', icon: 'folder' },
     { id: 'gallery', label: 'Gallery', icon: 'image' },
+    { id: 'sms', label: 'Messages', icon: 'message-square' },
     { id: 'terminal', label: 'Terminal', icon: 'terminal' },
     { id: 'contacts', label: 'Contacts', icon: 'users' },
     { id: 'notifications', label: 'Notifications', icon: 'bell' },
@@ -89,6 +90,7 @@ const App = (() => {
     panels.dashboard = Dashboard;
     panels.filemanager = FileManager;
     panels.gallery = Gallery;
+    panels.sms = Sms;
     panels.terminal = Terminal;
     panels.contacts = Contacts;
     panels.notifications = Notifications;
