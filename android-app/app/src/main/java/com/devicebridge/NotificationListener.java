@@ -27,7 +27,7 @@ public class NotificationListener extends NotificationListenerService {
         }
     }
 
-    public static List<StatusBarNotification> getActiveNotifications() {
+    public static List<StatusBarNotification> getCachedNotifications() {
         synchronized (activeNotifications) {
             return new ArrayList<>(activeNotifications);
         }

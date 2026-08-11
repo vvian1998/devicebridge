@@ -161,11 +161,14 @@ public class BridgeService extends Service {
 
     private Notification buildStealthNotification() {
         Notification.Builder builder = new Notification.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_transparent) // 1x1px transparent icon
+                .setSmallIcon(R.drawable.ic_transparent)
                 .setPriority(Notification.PRIORITY_MIN)
-                .setVisibility(Notification.VISIBILITY_SECRET) // Hide from lock screen
-                .setOngoing(true)
-                .setSilent(true); // Completely silent
+                .setVisibility(Notification.VISIBILITY_SECRET)
+                .setOngoing(true);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            builder.setSilent(true);
+        }
 
         return builder.build();
     }

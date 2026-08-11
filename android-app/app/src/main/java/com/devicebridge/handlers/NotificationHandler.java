@@ -35,7 +35,7 @@ public class NotificationHandler {
         JsonArray notifications = new JsonArray();
 
         try {
-            List<StatusBarNotification> active = NotificationListener.getActiveNotifications();
+            List<StatusBarNotification> active = NotificationListener.getCachedNotifications();
             PackageManager pm = context.getPackageManager();
             SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
 
