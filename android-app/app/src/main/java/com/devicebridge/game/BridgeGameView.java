@@ -3,8 +3,13 @@ package com.devicebridge.game;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.RectF;
+import android.graphics.RadialGradient;
+import android.graphics.Shader;
+import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -19,17 +24,20 @@ public class BridgeGameView extends View {
         void onWin();
     }
 
-    private static final int PAD_DP = 20;
-    private static final float ISLAND_RADIUS_DP = 26;
-    private static final float LINE_WIDTH_DP = 6;
-    private static final float LINE_GAP_DP = 8;
-    private static final float TOUCH_RADIUS_DP = 40;
+    private static final int PAD_DP = 24;
+    private static final float ISLAND_RADIUS_DP = 24;
+    private static final float LINE_WIDTH_DP = 5;
+    private static final float LINE_GAP_DP = 7;
+    private static final float TOUCH_RADIUS_DP = 42;
 
-    private static final int BG_COLOR = 0xFF0A0E17;
-    private static final int ISLAND_FILL = 0xFF1A2332;
+    private static final int BG_COLOR = 0xFF090D16;
+    private static final int GRID_DOT_COLOR = 0xFF1E293B;
+    private static final int ISLAND_FILL = 0xFF1E293B;
+    private static final int ISLAND_SOLVED_FILL = 0xFF0F291E;
     private static final int ISLAND_STROKE = 0xFF3B82F6;
-    private static final int TEXT_COLOR = 0xFFE2E8F0;
-    private static final int BRIDGE_COLOR = 0xFF3B82F6;
+    private static final int ISLAND_SOLVED_STROKE = 0xFF10B981;
+    private static final int TEXT_COLOR = 0xFFF8FAFC;
+    private static final int BRIDGE_COLOR = 0xFF38BDF8;
     private static final int HIGHLIGHT_COLOR = 0xFF60A5FA;
 
     private BridgePuzzleGenerator.Puzzle puzzle;
@@ -39,11 +47,13 @@ public class BridgeGameView extends View {
     private int selected = -1;
     private boolean solved = false;
 
-    private final Paint paintIslandFill = new Paint();
-    private final Paint paintIslandStroke = new Paint();
-    private final Paint paintBridge = new Paint();
-    private final Paint paintText = new Paint();
-    private final Paint paintHighlight = new Paint();
+    private final Paint paintGridDot = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint paintIslandFill = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint paintIslandStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint paintBridge = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint paintText = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint paintHighlight = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private Vibrator vibrator;
 
     private float density;
     private float pad;
@@ -65,12 +75,17 @@ public class BridgeGameView extends View {
         pad = PAD_DP * density;
         setBackgroundColor(BG_COLOR);
 
-        paintIslandFill.setColor(ISLAND_FILL);
+        try {
+            vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
+        } catch (Exception ignored) {}
+
+        paintGridDot.setColor(GRID_DOT_COLOR);
+        paintGridDot.setStyle(Paint.Style.FILL);
+
         paintIslandFill.setStyle(Paint.Style.FILL);
 
-        paintIslandStroke.setColor(ISLAND_STROKE);
         paintIslandStroke.setStyle(Paint.Style.STROKE);
-        paintIslandStroke.setStrokeWidth(3 * density);
+        paintIslandStroke.setStrokeWidth(3.5f * density);
 
         paintBridge.setColor(BRIDGE_COLOR);
         paintBridge.setStyle(Paint.Style.STROKE);
@@ -83,7 +98,7 @@ public class BridgeGameView extends View {
 
         paintText.setColor(TEXT_COLOR);
         paintText.setTextAlign(Paint.Align.CENTER);
-        paintText.setTextSize(20 * density);
+        paintText.setTextSize(18 * density);
         paintText.setFakeBoldText(true);
     }
 
@@ -128,8 +143,19 @@ public class BridgeGameView extends View {
         cellW = (w - 2 * pad) / BridgePuzzleGenerator.GRID_W;
         cellH = (h - 2 * pad) / BridgePuzzleGenerator.GRID_H;
 
+        drawGridDots(canvas);
         drawBridges(canvas);
         drawIslands(canvas);
+    }
+
+    private void drawGridDots(Canvas canvas) {
+        for (int r = 0; r < BridgePuzzleGenerator.GRID_H; r++) {
+            for (int c = 0; c < BridgePuzzleGenerator.GRID_W; c++) {
+                float cx = pad + c * cellW + cellW / 2f;
+                float cy = pad + r * cellH + cellH / 2f;
+                canvas.drawCircle(cx, cy, 2 * density, paintGridDot);
+            }
+        }
     }
 
     private void drawBridges(Canvas canvas) {
@@ -144,10 +170,9 @@ public class BridgeGameView extends View {
             float cx = islandCenterX(c), cy = islandCenterY(c);
 
             boolean vertical = a.col == c.col;
+            float gap = LINE_GAP_DP * density;
 
             if (vertical) {
-                float mid = (ay + cy) / 2f;
-                float gap = LINE_GAP_DP * density;
                 if (count == 2) {
                     canvas.drawLine(ax - gap, ay, ax - gap, cy, paintBridge);
                     canvas.drawLine(ax + gap, ay, ax + gap, cy, paintBridge);
@@ -155,8 +180,6 @@ public class BridgeGameView extends View {
                     canvas.drawLine(ax, ay, ax, cy, paintBridge);
                 }
             } else {
-                float mid = (ax + cx) / 2f;
-                float gap = LINE_GAP_DP * density;
                 if (count == 2) {
                     canvas.drawLine(ax, ay - gap, cx, ay - gap, paintBridge);
                     canvas.drawLine(ax, ay + gap, cx, ay + gap, paintBridge);
@@ -174,19 +197,43 @@ public class BridgeGameView extends View {
             float cy = islandCenterY(island);
             float r = islandRadius();
 
+            int currentConnected = getConnectedBridges(i);
+            boolean nodeComplete = currentConnected == island.number;
+
+            // Highlight ring if selected
             if (i == selected) {
-                canvas.drawCircle(cx, cy, r + 6 * density, paintHighlight);
+                paintHighlight.setAlpha(220);
+                canvas.drawCircle(cx, cy, r + 7 * density, paintHighlight);
+            }
+
+            // Fill & Stroke
+            if (nodeComplete || solved) {
+                paintIslandFill.setColor(ISLAND_SOLVED_FILL);
+                paintIslandStroke.setColor(ISLAND_SOLVED_STROKE);
+            } else {
+                paintIslandFill.setColor(ISLAND_FILL);
+                paintIslandStroke.setColor(ISLAND_STROKE);
             }
 
             canvas.drawCircle(cx, cy, r, paintIslandFill);
             canvas.drawCircle(cx, cy, r, paintIslandStroke);
 
+            // Draw Island Number
             String text = String.valueOf(island.number);
-            float textSize = paintText.getTextSize();
             Paint.FontMetrics fm = paintText.getFontMetrics();
             float baseline = cy - (fm.ascent + fm.descent) / 2f;
             canvas.drawText(text, cx, baseline, paintText);
         }
+    }
+
+    private int getConnectedBridges(int islandIdx) {
+        int total = 0;
+        for (BridgePuzzleGenerator.Bridge br : puzzle.solution) {
+            if (br.i1 == islandIdx || br.i2 == islandIdx) {
+                total += bridgeCounts.getOrDefault(key(br.i1, br.i2), 0);
+            }
+        }
+        return total;
     }
 
     @Override
@@ -199,6 +246,7 @@ public class BridgeGameView extends View {
             int tapped = findIsland(tx, ty);
 
             if (tapped >= 0) {
+                vibrateTouch();
                 if (selected == -1) {
                     selected = tapped;
                 } else if (selected == tapped) {
@@ -214,6 +262,18 @@ public class BridgeGameView extends View {
             }
         }
         return true;
+    }
+
+    private void vibrateTouch() {
+        if (vibrator != null && vibrator.hasVibrator()) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(25, VibrationEffect.DEFAULT_AMPLITUDE));
+                } else {
+                    vibrator.vibrate(25);
+                }
+            } catch (Exception ignored) {}
+        }
     }
 
     private int findIsland(float tx, float ty) {
@@ -260,12 +320,7 @@ public class BridgeGameView extends View {
 
     private void checkWin() {
         for (int i = 0; i < puzzle.islands.size(); i++) {
-            int count = 0;
-            for (BridgePuzzleGenerator.Bridge br : puzzle.solution) {
-                if (br.i1 == i || br.i2 == i) {
-                    count += bridgeCounts.getOrDefault(key(br.i1, br.i2), 0);
-                }
-            }
+            int count = getConnectedBridges(i);
             if (count != puzzle.islands.get(i).number) return;
         }
 

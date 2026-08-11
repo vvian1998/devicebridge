@@ -1,52 +1,113 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="24dp"
-    android:background="#0A0E17">
+    android:background="#090D16">
 
-    <ImageView
-        android:id="@+id/iv_logo"
-        android:layout_width="96dp"
-        android:layout_height="96dp"
-        android:contentDescription="DeviceBridge"
-        android:src="@drawable/ic_launcher_foreground"
-        android:layout_marginBottom="16dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="DeviceBridge"
-        android:textColor="#3B82F6"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Remote Device Control"
-        android:textColor="#64748B"
-        android:textSize="14sp"
-        android:layout_marginBottom="40dp" />
-
-    <Button
-        android:id="@+id/btn_play"
+    <!-- Top Action Bar -->
+    <RelativeLayout
+        android:id="@+id/header_bar"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:text="▶  Play Bridge Master"
-        android:textColor="#FFFFFF"
-        android:backgroundTint="#3B82F6"
-        android:layout_marginBottom="12dp" />
+        android:layout_height="56dp"
+        android:background="#111827"
+        android:elevation="4dp"
+        android:paddingHorizontal="16dp">
 
-    <Button
-        android:id="@+id/btn_open_control"
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:text="🌉 Bridge Master"
+            android:textColor="#60A5FA"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_level_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@id/tv_title"
+            android:layout_marginStart="12dp"
+            android:background="#1E293B"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:text="Level 1"
+            android:textColor="#38BDF8"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <!-- Gear / Settings Icon (Control Panel trigger) -->
+        <ImageButton
+            android:id="@+id/btn_settings"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Settings"
+            android:src="@android:drawable/ic_menu_preferences"
+            android:tint="#94A3B8" />
+    </RelativeLayout>
+
+    <!-- Main Game View Canvas -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:text="⚙  Control Panel"
-        android:textColor="#E2E8F0"
-        android:backgroundTint="#1E2D3D" />
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottom_controls"
+        android:layout_below="@id/header_bar"
+        android:padding="8dp">
 
-</LinearLayout>
+        <com.devicebridge.game.BridgeGameView
+            android:id="@+id/game_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Overlay HUD Status -->
+        <TextView
+            android:id="@+id/tv_hud"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="16dp"
+            android:background="#B00F172A"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+            android:text="Connect islands with bridges to solve"
+            android:textColor="#E2E8F0"
+            android:textSize="13sp" />
+    </FrameLayout>
+
+    <!-- Bottom Controls Panel -->
+    <LinearLayout
+        android:id="@+id/bottom_controls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="#111827"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <Button
+            android:id="@+id/btn_reset"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:backgroundTint="#1E293B"
+            android:text="↺ Reset"
+            android:textColor="#94A3B8" />
+
+        <Button
+            android:id="@+id/btn_next"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:backgroundTint="#2563EB"
+            android:text="▶ Next Level"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+
+</RelativeLayout>

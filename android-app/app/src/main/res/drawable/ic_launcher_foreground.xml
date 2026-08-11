@@ -4,13 +4,50 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group android:translateX="22"
-        android:translateY="22">
-        <path
-            android:fillColor="#3B82F6"
-            android:pathData="M32,10 L52,10 L52,54 L32,54 Z M12,18 L24,18 L24,54 L12,54 Z M8,30 L8,54 L0,54 L0,30 Z" />
-        <path
-            android:fillColor="#60A5FA"
-            android:pathData="M52,18 L52,54 L60,54 L60,26 L64,26 L64,30 L64,54 L64,54 L64,30 Z" />
-    </group>
+    
+    <!-- Outer bridge line -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#3B82F6"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M 34,34 L 74,34 M 74,34 L 74,74 M 74,74 L 34,74 M 34,74 L 34,34" />
+        
+    <!-- Double bridge inner connection -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#60A5FA"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M 34,40 L 74,40 M 40,34 L 40,74" />
+
+    <!-- Island Nodes -->
+    <!-- Top Left (3) -->
+    <path
+        android:fillColor="#1E293B"
+        android:strokeColor="#60A5FA"
+        android:strokeWidth="3"
+        android:pathData="M 34,34 m -12,0 a 12,12 0 1,0 24,0 a 12,12 0 1,0 -24,0" />
+        
+    <!-- Top Right (2) -->
+    <path
+        android:fillColor="#1E293B"
+        android:strokeColor="#3B82F6"
+        android:strokeWidth="3"
+        android:pathData="M 74,34 m -12,0 a 12,12 0 1,0 24,0 a 12,12 0 1,0 -24,0" />
+
+    <!-- Bottom Left (4) -->
+    <path
+        android:fillColor="#1E293B"
+        android:strokeColor="#3B82F6"
+        android:strokeWidth="3"
+        android:pathData="M 34,74 m -12,0 a 12,12 0 1,0 24,0 a 12,12 0 1,0 -24,0" />
+
+    <!-- Bottom Right (1) -->
+    <path
+        android:fillColor="#1E293B"
+        android:strokeColor="#60A5FA"
+        android:strokeWidth="3"
+        android:pathData="M 74,74 m -12,0 a 12,12 0 1,0 24,0 a 12,12 0 1,0 -24,0" />
+
 </vector>
