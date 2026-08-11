@@ -3,4 +3,3 @@ build/
 local.properties
 *.iml
 .DS_Store
-gradle/wrapper/gradle-wrapper.jar
