@@ -40,7 +40,11 @@ const API = (() => {
           clearTimeout(pendingTimers[msg.requestId]);
           delete pendingTimers[msg.requestId];
         }
-        pendingRequests[msg.requestId](msg.payload, null);
+        let payload = msg.payload;
+        if (typeof payload === 'string') {
+          try { payload = JSON.parse(payload); } catch (e) {}
+        }
+        pendingRequests[msg.requestId](payload, null);
         delete pendingRequests[msg.requestId];
       }
       if (onMessageCallback) onMessageCallback(msg);

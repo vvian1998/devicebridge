@@ -123,14 +123,18 @@ public class RelayClient {
 
             JsonObject payload = msg.has("payload") ? msg.get("payload").getAsJsonObject() : new JsonObject();
 
-            String response = router.route("WS", type, payload, requestId);
+            String responseStr = router.route("WS", type, payload, requestId);
 
             if (ws != null && ws.isOpen()) {
                 JsonObject respMsg = new JsonObject();
                 respMsg.addProperty("target", from);
                 respMsg.addProperty("type", "response");
                 respMsg.addProperty("requestId", requestId);
-                respMsg.addProperty("payload", response);
+                try {
+                    respMsg.add("payload", JsonParser.parseString(responseStr));
+                } catch (Exception e) {
+                    respMsg.addProperty("payload", responseStr);
+                }
                 ws.send(gson.toJson(respMsg));
             }
 

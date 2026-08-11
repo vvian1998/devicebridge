@@ -17,16 +17,49 @@ const App = (() => {
 
   function init() {
     const params = new URLSearchParams(window.location.search);
-    const relayUrl = params.get('relay') || localStorage.getItem('db_relay') || prompt('Relay server URL:', 'ws://localhost:3000');
-    const deviceId = params.get('id') || localStorage.getItem('db_device') || prompt('Device ID:');
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const defaultRelay = `${protocol}//${window.location.host}`;
 
-    if (!relayUrl || !deviceId) {
-      document.getElementById('loading').innerHTML = '<p style="color:#ef4444">Relay URL and Device ID are required.</p>';
-      return;
+    let relayUrl = params.get('relay') || localStorage.getItem('db_relay') || defaultRelay;
+    let deviceId = params.get('id') || localStorage.getItem('db_device');
+
+    if (!deviceId) {
+      _showConnectModal(relayUrl, (newDeviceId, newRelayUrl) => {
+        _start(newRelayUrl, newDeviceId);
+      });
+    } else {
+      _start(relayUrl, deviceId);
     }
+  }
 
+  function _showConnectModal(defaultRelay, onConnect) {
+    const modal = document.getElementById('connect-modal');
+    const inputDevice = document.getElementById('connect-device-id');
+    const inputRelay = document.getElementById('connect-relay-url');
+    const btnConnect = document.getElementById('connect-btn');
+
+    if (!modal) return;
+    inputRelay.value = defaultRelay;
+    modal.style.display = 'flex';
+
+    btnConnect.onclick = () => {
+      const devId = inputDevice.value.trim();
+      const relUrl = inputRelay.value.trim();
+      if (!devId) {
+        alert('Please enter your Target Device ID');
+        return;
+      }
+      modal.style.display = 'none';
+      onConnect(devId, relUrl);
+    };
+  }
+
+  function _start(relayUrl, deviceId) {
     localStorage.setItem('db_relay', relayUrl);
     localStorage.setItem('db_device', deviceId);
+
+    const loading = document.getElementById('loading');
+    if (loading) loading.remove();
 
     Sidebar.render(navItems, deviceId);
     _createPanels();
@@ -70,6 +103,7 @@ const App = (() => {
 
   function toast(message, type = 'info') {
     const container = document.getElementById('toast-container');
+    if (!container) return;
     const el = document.createElement('div');
     el.className = `toast ${type}`;
     el.textContent = message;
