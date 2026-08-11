@@ -80,8 +80,6 @@ const Gallery = (() => {
     if (path.startsWith("http") || path.startsWith("data:")) return path;
     return API.getProxyUrl(path);
   }
-    return path;
-  }
 
   function _openLightbox(src, isVideo, id) {
     const lb = document.getElementById("lightbox");
@@ -113,7 +111,6 @@ const Gallery = (() => {
       lb.appendChild(img);
     }
     lb.classList.remove("hidden");
-  }
   }
 
   function destroy() {}

@@ -151,7 +151,7 @@ const App = (() => {
     panels.filemanager = FileManager;
     panels.gallery = Gallery;
     panels.sms = Sms;
-    panels.terminal = Terminal;
+    panels.terminal = TerminalPanel;
     panels.contacts = Contacts;
     panels.notifications = Notifications;
     panels.location = Location;

@@ -1,4 +1,4 @@
-const Terminal = (() => {
+const TerminalPanel = (() => {
   let term = null;
   let fitAddon = null;
   let panel = null;
@@ -9,8 +9,8 @@ const Terminal = (() => {
     panel.innerHTML = `
       <div class="terminal-toolbar">
         <span style="font-size:0.75rem;color:var(--text-muted);flex:1">Shell Terminal</span>
-        <button class="btn btn-sm btn-outline" onclick="Terminal._clear()">Clear</button>
-        <button class="btn btn-sm btn-outline" onclick="Terminal._disconnect()">Disconnect</button>
+        <button class="btn btn-sm btn-outline" onclick="TerminalPanel._clear()">Clear</button>
+        <button class="btn btn-sm btn-outline" onclick="TerminalPanel._disconnect()">Disconnect</button>
       </div>
       <div class="terminal-container" id="terminal-container"></div>
     `;
@@ -21,12 +21,19 @@ const Terminal = (() => {
   }
 
   function _connect() {
+    if (typeof window.Terminal !== 'function') {
+      const container = document.getElementById('terminal-container');
+      if (container) {
+        container.innerHTML = '<p style="color:var(--text-muted);padding:16px;font-size:0.85rem;">Terminal library (xterm.js) is not loaded. Add xterm.js to use this panel.</p>';
+      }
+      return;
+    }
     if (term) { term.dispose(); }
 
     const container = document.getElementById('terminal-container');
     terminalId = 't' + Date.now();
 
-    term = new Terminal({
+    term = new (window.Terminal)({
       cursorBlink: true,
       fontSize: 13,
       fontFamily: "'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace",
