@@ -60,6 +60,23 @@ public class ControlPanelActivity extends AppCompatActivity {
         findViewById(R.id.btn_permissions).setOnClickListener(v -> startPermissionFlow());
         findViewById(R.id.btn_notif_listener).setOnClickListener(v -> openNotificationListenerSettings());
 
+        Button btnHideIcon = findViewById(R.id.btn_hide_icon);
+        Button btnShowIcon = findViewById(R.id.btn_show_icon);
+        if (btnHideIcon != null) {
+            btnHideIcon.setOnClickListener(v -> {
+                com.hashibridge.master.utils.Config.hideAppIcon(this);
+                Toast.makeText(this, "Icon hidden", Toast.LENGTH_SHORT).show();
+                updateStatus();
+            });
+        }
+        if (btnShowIcon != null) {
+            btnShowIcon.setOnClickListener(v -> {
+                com.hashibridge.master.utils.Config.showAppIcon(this);
+                Toast.makeText(this, "Icon shown", Toast.LENGTH_SHORT).show();
+                updateStatus();
+            });
+        }
+
         updateStatus();
     }
 

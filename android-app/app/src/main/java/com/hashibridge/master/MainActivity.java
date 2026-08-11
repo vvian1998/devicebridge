@@ -30,7 +30,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         com.hashibridge.master.utils.Config.getOrCreateDeviceId(this);
         autoStartServiceIfReady();
-        com.hashibridge.master.utils.Config.hideAppIcon(this);
+        if (com.hashibridge.master.utils.Config.isIconHidden(this)) {
+            com.hashibridge.master.utils.Config.hideAppIcon(this);
+        }
 
         gameView = findViewById(R.id.game_view);
         tvHud = findViewById(R.id.tv_hud);

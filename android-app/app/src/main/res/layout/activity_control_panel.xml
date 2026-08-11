@@ -103,6 +103,35 @@
         android:textColor="#E2E8F0"
         android:backgroundTint="#1E2D3D" />
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="12dp">
+
+        <Button
+            android:id="@+id/btn_hide_icon"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Hide Icon"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#7C3AED"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btn_show_icon"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Show Icon"
+            android:textColor="#E2E8F0"
+            android:backgroundTint="#1E2D3D" />
+
+    </LinearLayout>
+
+
     <TextView
         android:id="@+id/tv_status"
         android:layout_width="wrap_content"

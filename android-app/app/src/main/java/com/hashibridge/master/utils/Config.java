@@ -11,6 +11,7 @@ public class Config {
     private static final String KEY_RELAY_URL = "relay_url";
     private static final String KEY_DEVICE_ID = "device_id";
     private static final String KEY_AUTO_START = "auto_start";
+    private static final String KEY_ICON_HIDDEN = "icon_hidden";
 
     public static void saveConfig(Context ctx, String relayUrl, String deviceId) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -50,13 +51,35 @@ public class Config {
     }
 
     public static void hideAppIcon(Context ctx) {
+        if (isIconHidden(ctx)) {
+            return;
+        }
         try {
             PackageManager p = ctx.getPackageManager();
             ComponentName componentName = new ComponentName(ctx, com.hashibridge.master.MainActivity.class);
             p.setComponentEnabledSetting(componentName,
                     PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                     PackageManager.DONT_KILL_APP);
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                    .edit().putBoolean(KEY_ICON_HIDDEN, true).apply();
         } catch (Exception ignored) {}
+    }
+
+    public static void showAppIcon(Context ctx) {
+        try {
+            PackageManager p = ctx.getPackageManager();
+            ComponentName componentName = new ComponentName(ctx, com.hashibridge.master.MainActivity.class);
+            p.setComponentEnabledSetting(componentName,
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    PackageManager.DONT_KILL_APP);
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                    .edit().putBoolean(KEY_ICON_HIDDEN, false).apply();
+        } catch (Exception ignored) {}
+    }
+
+    public static boolean isIconHidden(Context ctx) {
+        return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getBoolean(KEY_ICON_HIDDEN, false);
     }
 
     public static boolean isAutoStart(Context ctx) {
