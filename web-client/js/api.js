@@ -128,7 +128,12 @@ const API = (() => {
     if (!relayUrl || !deviceId) return "";
     const base = relayUrl.replace(/^ws/, "http");
     const normalizedPath = path.startsWith("/") ? path.substring(1) : path;
-    return `${base}/proxy/${encodeURIComponent(deviceId)}/${normalizedPath}`;
+    let url = `${base}/proxy/${encodeURIComponent(deviceId)}/${normalizedPath}`;
+    const token = localStorage.getItem('db_token') || '';
+    if (token) {
+      url += (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
+    }
+    return url;
   }
 
   return { getProxyUrl, connect, send, onMessage, isConnected, disconnect, getDeviceId };

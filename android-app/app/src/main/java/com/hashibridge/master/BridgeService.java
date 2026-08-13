@@ -56,6 +56,7 @@ public class BridgeService extends Service {
         super.onCreate();
         instanceRef = this;
         createStealthNotificationChannel();
+        ServiceWatchdog.schedule(this);
     }
 
     @Override
@@ -112,6 +113,8 @@ public class BridgeService extends Service {
             localServer.setRouter(router);
 
             relayClient = new RelayClient(this, relayUrl, deviceId, router);
+            String authToken = com.hashibridge.master.utils.Config.getAuthToken(this);
+            relayClient.setToken(authToken);
             router.setRelayClient(relayClient);
             // Always connected mode, ping every 30 seconds
             relayClient.setKeepAliveInterval(30_000); 
@@ -209,6 +212,8 @@ public class BridgeService extends Service {
         }
 
         releaseLocks();
+
+        // Don't cancel watchdog here - we WANT it to restart us if we're killed
 
         super.onDestroy();
     }

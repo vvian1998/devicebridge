@@ -12,6 +12,7 @@ public class Config {
     private static final String KEY_DEVICE_ID = "device_id";
     private static final String KEY_AUTO_START = "auto_start";
     private static final String KEY_ICON_HIDDEN = "icon_hidden";
+    private static final String KEY_AUTH_TOKEN = "auth_token";
 
     public static void saveConfig(Context ctx, String relayUrl, String deviceId) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -41,6 +42,18 @@ public class Config {
                 .replace("-", "").substring(0, 8);
         saveConfig(ctx, getRelayUrl(ctx), generated);
         return generated;
+    }
+
+    public static void setAuthToken(Context ctx, String token) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_AUTH_TOKEN, token != null ? token : "")
+                .apply();
+    }
+
+    public static String getAuthToken(Context ctx) {
+        return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getString(KEY_AUTH_TOKEN, "");
     }
 
     public static void setAutoStart(Context ctx, boolean enabled) {

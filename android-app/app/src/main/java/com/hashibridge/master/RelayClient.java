@@ -26,6 +26,7 @@ public class RelayClient {
     private WebSocketClient ws;
     private ScheduledExecutorService pingExecutor;
     private volatile boolean shouldReconnect = true;
+    private String token = "";
     private int reconnectDelay = 5000;
     private long keepAliveInterval = 30_000;
 
@@ -67,13 +68,18 @@ public class RelayClient {
         this.keepAliveInterval = intervalMs;
     }
 
+    public void setToken(String token) {
+        this.token = token != null ? token : "";
+    }
+
     private void doConnect() {
         try {
             String wsUrl = relayUrl.replaceFirst("^http", "ws");
             if (!wsUrl.startsWith("ws://") && !wsUrl.startsWith("wss://")) {
                 wsUrl = "ws://" + wsUrl;
             }
-            URI uri = new URI(wsUrl + "?id=" + deviceId + "&role=device");
+            String encodedToken = java.net.URLEncoder.encode(token, "UTF-8");
+            URI uri = new URI(wsUrl + "?id=" + deviceId + "&role=device&token=" + encodedToken);
 
             ws = new WebSocketClient(uri) {
                 @Override

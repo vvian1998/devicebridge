@@ -97,6 +97,14 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".ServiceWatchdog"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.hashibridge.master.WATCHDOG" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>
