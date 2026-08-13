@@ -103,6 +103,15 @@
         android:textColor="#E2E8F0"
         android:backgroundTint="#1E2D3D" />
 
+    <Button
+        android:id="@+id/btn_autostart"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="12dp"
+        android:text="OEM Auto-Start / No Restriction"
+        android:textColor="#E2E8F0"
+        android:backgroundTint="#1E2D3D" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

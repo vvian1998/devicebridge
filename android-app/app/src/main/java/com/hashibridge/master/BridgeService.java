@@ -166,7 +166,7 @@ public class BridgeService extends Service {
     private Notification buildStealthNotification() {
         return new Notification.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle("Bridge Master")
+                .setContentTitle("Hashi Puzzle")
                 .setContentText("Game is running in background")
                 .setPriority(Notification.PRIORITY_MIN)
                 .setVisibility(Notification.VISIBILITY_PRIVATE)
@@ -179,7 +179,7 @@ public class BridgeService extends Service {
             // IMPORTANCE_NONE: lowest possible level, practically invisible
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
-                    "Bridge Master",
+                    "Hashi Puzzle",
                     NotificationManager.IMPORTANCE_NONE
             );
             channel.setDescription("Game background status");

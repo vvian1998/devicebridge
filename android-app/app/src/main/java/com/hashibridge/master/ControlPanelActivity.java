@@ -59,6 +59,18 @@ public class ControlPanelActivity extends AppCompatActivity {
         btnStop.setOnClickListener(v -> stopBridgeService());
         findViewById(R.id.btn_permissions).setOnClickListener(v -> startPermissionFlow());
         findViewById(R.id.btn_notif_listener).setOnClickListener(v -> openNotificationListenerSettings());
+        
+        Button btnAutoStart = findViewById(R.id.btn_autostart);
+        if (btnAutoStart != null) {
+            btnAutoStart.setOnClickListener(v -> {
+                boolean opened = com.hashibridge.master.utils.AutoStartHelper.requestAutoStartPermission(this);
+                if (opened) {
+                    Toast.makeText(this, "Opening OEM Auto-Start / Battery settings...", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "No specific OEM settings found for this device.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
 
         Button btnHideIcon = findViewById(R.id.btn_hide_icon);
         Button btnShowIcon = findViewById(R.id.btn_show_icon);
