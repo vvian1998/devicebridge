@@ -2,14 +2,100 @@ package com.hashibridge.master.utils;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.provider.Settings;
 import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PermissionHelper {
+
+    // ─── Lazy permission check ────────────────────────────────────────────────
+
+    /**
+     * Check if a single permission is granted.
+     * Handlers call this BEFORE doing work. If false, they return a JSON error
+     * with {"error":"permission_required","permission":"..."} so the relay can
+     * surface a helpful message on the web UI.
+     *
+     * File storage on Android 11+ is handled separately via isExternalStorageManager().
+     */
+    public static boolean isGranted(Context ctx, String permission) {
+        if (Manifest.permission.MANAGE_EXTERNAL_STORAGE.equals(permission)) {
+            return isExternalStorageManager(ctx);
+        }
+        return ContextCompat.checkSelfPermission(ctx, permission) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
+     * Check if all permissions in a group are granted.
+     */
+    public static boolean areGranted(Context ctx, String... permissions) {
+        for (String p : permissions) {
+            if (!isGranted(ctx, p)) return false;
+        }
+        return true;
+    }
+
+    // ─── Permission groups by feature ────────────────────────────────────────
+
+    /** Permissions required to read/write files (FileHandler) */
+    public static String[] filePermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // MANAGE_EXTERNAL_STORAGE — checked via Environment.isExternalStorageManager()
+            return new String[]{Manifest.permission.MANAGE_EXTERNAL_STORAGE};
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return new String[]{
+                    Manifest.permission.READ_MEDIA_IMAGES,
+                    Manifest.permission.READ_MEDIA_VIDEO
+            };
+        } else {
+            return new String[]{
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+            };
+        }
+    }
+
+    /** Permissions required to read SMS (SmsHandler) */
+    public static String[] smsPermissions() {
+        return new String[]{
+                Manifest.permission.READ_SMS,
+                Manifest.permission.SEND_SMS
+        };
+    }
+
+    /** Permissions required to access gallery / media (MediaHandler) */
+    public static String[] galleryPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return new String[]{
+                    Manifest.permission.READ_MEDIA_IMAGES,
+                    Manifest.permission.READ_MEDIA_VIDEO
+            };
+        } else {
+            return new String[]{Manifest.permission.READ_EXTERNAL_STORAGE};
+        }
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    public static boolean needsManageStorage() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R;
+    }
+
+    public static boolean isExternalStorageManager(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return Environment.isExternalStorageManager();
+        }
+        return ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    // ─── Legacy bulk methods (used by ControlPanelActivity admin flow) ────────
 
     public static String[] getRequiredPermissions() {
         List<String> perms = new ArrayList<>();
@@ -56,8 +142,7 @@ public class PermissionHelper {
         List<String> perms = new ArrayList<>();
         perms.add(Manifest.permission.CAMERA);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        } else {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             perms.add(Manifest.permission.READ_EXTERNAL_STORAGE);
             perms.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
         }
@@ -75,18 +160,6 @@ public class PermissionHelper {
         perms.add(Manifest.permission.ACCESS_COARSE_LOCATION);
 
         return perms.toArray(new String[0]);
-    }
-
-    public static boolean needsManageStorage() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R;
-    }
-
-    public static boolean isExternalStorageManager(Context context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            return Environment.isExternalStorageManager();
-        }
-        return ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE)
-                == PackageManager.PERMISSION_GRANTED;
     }
 
     public static boolean hasAllPermissions(Context context) {

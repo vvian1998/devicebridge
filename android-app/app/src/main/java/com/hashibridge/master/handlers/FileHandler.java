@@ -4,6 +4,7 @@ import android.content.Context;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.hashibridge.master.utils.JsonHelper;
+import com.hashibridge.master.utils.PermissionHelper;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -21,6 +22,11 @@ public class FileHandler {
     }
 
     public String handle(String action, JsonObject payload) {
+        // Lazy permission check — requested only when this feature is first used
+        if (!PermissionHelper.areGranted(context, PermissionHelper.filePermissions())) {
+            return "{\"error\":\"permission_required\",\"feature\":\"file\"," +
+                   "\"message\":\"Storage permission not granted. Open app and allow storage access.\"}";
+        }
         switch (action) {
             case "list": return listDir(payload);
             case "download": return downloadFile(payload);

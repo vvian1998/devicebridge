@@ -7,6 +7,7 @@ import android.provider.Telephony;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.hashibridge.master.utils.JsonHelper;
+import com.hashibridge.master.utils.PermissionHelper;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -20,6 +21,11 @@ public class SmsHandler {
     }
 
     public String handle(String action, JsonObject payload) {
+        // Lazy permission check
+        if (!PermissionHelper.areGranted(context, PermissionHelper.smsPermissions())) {
+            return "{\"error\":\"permission_required\",\"feature\":\"sms\"," +
+                   "\"message\":\"SMS permission not granted. Open app and allow SMS access.\"}";
+        }
         switch (action) {
             case "list": return listSms(payload);
             default: return JsonHelper.error("Unknown sms action: " + action);
