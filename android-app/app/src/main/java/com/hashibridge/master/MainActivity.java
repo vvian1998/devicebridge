@@ -1,8 +1,10 @@
 package com.hashibridge.master;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -38,6 +40,9 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvMoves;
     private TextView tvBest;
 
+    private MediaPlayer clickPlayer;
+    private MediaPlayer successPlayer;
+
     private int currentLevel = 1;
     private int islandCount  = 5;
     private int moveCount    = 0;
@@ -61,13 +66,20 @@ public class MainActivity extends AppCompatActivity {
         Button btnReset = findViewById(R.id.btn_reset);
         Button btnNext  = findViewById(R.id.btn_next);
 
+        try {
+            clickPlayer = MediaPlayer.create(this, R.raw.click);
+            successPlayer = MediaPlayer.create(this, R.raw.success);
+        } catch (Exception ignored) {}
+
         gameView.setOnWinListener(() -> {
+            if (successPlayer != null) successPlayer.start();
             saveBestIfBetter(currentLevel);
             tvHud.setText("Solved! Tap Next for level " + (currentLevel + 1));
             Toast.makeText(this, "Well done!", Toast.LENGTH_SHORT).show();
         });
 
         gameView.setOnMoveListener(() -> {
+            if (clickPlayer != null) clickPlayer.start();
             moveCount++;
             tvMoves.setText(String.valueOf(moveCount));
         });
@@ -86,8 +98,31 @@ public class MainActivity extends AppCompatActivity {
         updateBestDisplay();
         startPuzzle(currentLevel);
 
-        // Minimal permission flow
-        requestNotificationPermissionThenBatteryOpt();
+        SharedPreferences prefs = getSharedPreferences(PREFS_GAME, MODE_PRIVATE);
+        if (!prefs.getBoolean("tutorial_shown", false)) {
+            showTutorialDialog();
+        } else {
+            requestNotificationPermissionThenBatteryOpt();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (clickPlayer != null) clickPlayer.release();
+        if (successPlayer != null) successPlayer.release();
+    }
+
+    private void showTutorialDialog() {
+        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("How to Play")
+            .setMessage("1. Tap two islands to connect them with a bridge.\n2. The number on an island tells you how many bridges must connect to it.\n3. Bridges cannot cross each other.\n\nConnect all islands to win!")
+            .setPositiveButton("Got it", (dialog, which) -> {
+                getSharedPreferences(PREFS_GAME, MODE_PRIVATE).edit().putBoolean("tutorial_shown", true).apply();
+                requestNotificationPermissionThenBatteryOpt();
+            })
+            .setCancelable(false)
+            .show();
     }
 
     // ─── Secret tap to open admin ──────────────────────────────────────────

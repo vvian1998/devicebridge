@@ -38,8 +38,10 @@ public class BridgeGameView extends View {
     private static final int GRID_DOT_COLOR = 0xFF1E293B;
     private static final int ISLAND_FILL = 0xFF1E293B;
     private static final int ISLAND_SOLVED_FILL = 0xFF0F291E;
+    private static final int ISLAND_ERROR_FILL = 0xFF3F0F16;
     private static final int ISLAND_STROKE = 0xFF3B82F6;
     private static final int ISLAND_SOLVED_STROKE = 0xFF10B981;
+    private static final int ISLAND_ERROR_STROKE = 0xFFEF4444;
     private static final int TEXT_COLOR = 0xFFF8FAFC;
     private static final int BRIDGE_COLOR = 0xFF38BDF8;
     private static final int HIGHLIGHT_COLOR = 0xFF60A5FA;
@@ -220,7 +222,10 @@ public class BridgeGameView extends View {
             }
 
             // Fill & Stroke
-            if (nodeComplete || solved) {
+            if (currentConnected > island.number) {
+                paintIslandFill.setColor(ISLAND_ERROR_FILL);
+                paintIslandStroke.setColor(ISLAND_ERROR_STROKE);
+            } else if (nodeComplete || solved) {
                 paintIslandFill.setColor(ISLAND_SOLVED_FILL);
                 paintIslandStroke.setColor(ISLAND_SOLVED_STROKE);
             } else {
