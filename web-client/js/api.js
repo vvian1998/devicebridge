@@ -5,7 +5,7 @@ const API = (() => {
   let pendingRequests = {};
   let pendingTimers = {};
   let requestIdCounter = 0;
-  let onMessageCallback = null;
+  let messageListeners = [];
   let onStatusChange = null;
   let reconnectTimer = null;
   let connected = false;
@@ -23,7 +23,8 @@ const API = (() => {
     }
 
     const wsUrl = relayUrl.replace(/^http/, 'ws');
-    ws = new WebSocket(`${wsUrl}?id=${encodeURIComponent(deviceId)}&role=client`);
+    const token = localStorage.getItem('db_token') || '';
+    ws = new WebSocket(`${wsUrl}?id=${encodeURIComponent(deviceId)}&role=client&token=${encodeURIComponent(token)}`);
 
     ws.onopen = () => {
       connected = true;
@@ -47,7 +48,7 @@ const API = (() => {
         pendingRequests[msg.requestId](payload, null);
         delete pendingRequests[msg.requestId];
       }
-      if (onMessageCallback) onMessageCallback(msg);
+      messageListeners.forEach(cb => cb(msg));
     };
 
     ws.onclose = () => {
@@ -104,7 +105,11 @@ const API = (() => {
   }
 
   function onMessage(cb) {
-    onMessageCallback = cb;
+    messageListeners.push(cb);
+    // Return unsubscribe function
+    return () => {
+      messageListeners = messageListeners.filter(fn => fn !== cb);
+    };
   }
 
   function isConnected() {

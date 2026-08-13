@@ -53,7 +53,7 @@ const Contacts = (() => {
     });
   }
 
-  function _esc(s) { return String(s).replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function _esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 
   function destroy() {}
 

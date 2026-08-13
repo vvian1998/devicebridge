@@ -180,7 +180,7 @@ const FileManager = (() => {
     return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
   }
 
-  function _esc(s) { return String(s).replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function _esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
   function _escAttr(s) { return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
 
   function destroy() {}

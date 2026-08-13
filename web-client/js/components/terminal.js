@@ -3,6 +3,7 @@ const TerminalPanel = (() => {
   let fitAddon = null;
   let panel = null;
   let terminalId = null;
+  let _unsubscribe = null;
 
   function init() {
     panel = document.getElementById('panel-terminal');
@@ -69,7 +70,8 @@ const TerminalPanel = (() => {
       if (err) { term.write('\r\n\x1b[31mFailed to open terminal\x1b[0m\r\n'); return; }
     });
 
-    API.onMessage((msg) => {
+    if (_unsubscribe) _unsubscribe();
+    _unsubscribe = API.onMessage((msg) => {
       if (msg.type === 'event' && msg.payload && msg.payload.terminalId === terminalId && msg.payload.data) {
         if (term) term.write(msg.payload.data);
       }
@@ -88,6 +90,7 @@ const TerminalPanel = (() => {
   }
 
   function destroy() {
+    if (_unsubscribe) { _unsubscribe(); _unsubscribe = null; }
     if (terminalId) {
       API.send('terminal', { action: 'close', terminalId });
     }

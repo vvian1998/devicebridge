@@ -17,9 +17,17 @@ function authRequired(req, res, next) {
   if (!WEB_PASSWORD) return next();
   const token = req.headers['x-auth-token'];
   const provided = req.query.token;
-  const ok = (token && token === WEB_PASSWORD) || (provided && provided === WEB_PASSWORD);
+  const ok = (token && _safeCompare(token, WEB_PASSWORD)) || (provided && _safeCompare(provided, WEB_PASSWORD));
   if (!ok) return res.status(401).json({ error: 'unauthorized' });
   return next();
+}
+
+function _safeCompare(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
 }
 
 // Static assets are public; the app JS itself is harmless. Device data stays gated behind auth.
@@ -32,7 +40,7 @@ app.post('/api/login', (req, res) => {
     return res.json({ ok: true, token: '' });
   }
   const { password } = req.body || {};
-  if (password === WEB_PASSWORD) {
+  if (_safeCompare(password, WEB_PASSWORD)) {
     return res.json({ ok: true, token: WEB_PASSWORD });
   }
   return res.status(401).json({ ok: false, error: 'invalid password' });
@@ -51,7 +59,7 @@ app.get('/api/devices', authRequired, (_req, res) => {
 
 const server = http.createServer(app);
 
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ server, maxPayload: 5 * 1024 * 1024 });
 
 const clients = new Map();
 
@@ -110,7 +118,7 @@ function handleProxyBinary(buf) {
 
 // Streaming proxy: browser hits this, we push it to the device over WS binary,
 // and pipe the device's binary chunks back into the HTTP response.
-app.all('/proxy/:deviceId/*', (req, res) => {
+app.all('/proxy/:deviceId/*', authRequired, (req, res) => {
   const deviceId = req.params.deviceId;
   const deviceWs = clients.get(deviceId + ':device');
 
@@ -174,6 +182,15 @@ wss.on('connection', (ws, req) => {
   ws.role = role;
   ws.isAlive = true;
 
+  // Authenticate WebSocket connections when WEB_PASSWORD is set
+  if (WEB_PASSWORD) {
+    const wsToken = new URL(req.url, `http://${req.headers.host}`).searchParams.get('token') || '';
+    if (!_safeCompare(wsToken, WEB_PASSWORD)) {
+      ws.close(4001, 'Unauthorized');
+      return;
+    }
+  }
+
   ws.on('pong', () => { ws.isAlive = true; });
 
   // Close old socket with same deviceId+role to prevent orphans
@@ -235,4 +252,7 @@ wss.on('connection', (ws, req) => {
 server.listen(PORT, () => {
   console.log(`DeviceBridge Relay running on port ${PORT}`);
   console.log(`WebSocket available at ws://0.0.0.0:${PORT}`);
+  if (!WEB_PASSWORD) {
+    console.warn('[!] WARNING: WEB_PASSWORD not set — authentication disabled. Set WEB_PASSWORD env var for production.');
+  }
 });

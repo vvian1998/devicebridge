@@ -2,6 +2,7 @@ const Location = (() => {
   let map = null;
   let marker = null;
   let panel = null;
+  let _unsubscribe = null;
 
   function init() {
     panel = document.getElementById('panel-location');
@@ -51,16 +52,22 @@ const Location = (() => {
     }
     map.setView(latlng, 15);
 
-    document.getElementById('location-coords').innerHTML = `
-      Lat: ${lat.toFixed(6)} | Lng: ${lng.toFixed(6)}<br>
-      Provider: ${provider || 'unknown'} | Accuracy: ${accuracy ? accuracy.toFixed(1) + 'm' : 'N/A'}
-    `;
+    const coordsEl = document.getElementById('location-coords');
+    coordsEl.innerHTML = '';
+    const line1 = document.createElement('span');
+    line1.textContent = `Lat: ${lat.toFixed(6)} | Lng: ${lng.toFixed(6)}`;
+    coordsEl.appendChild(line1);
+    coordsEl.appendChild(document.createElement('br'));
+    const line2 = document.createElement('span');
+    line2.textContent = `Provider: ${provider || 'unknown'} | Accuracy: ${accuracy ? accuracy.toFixed(1) + 'm' : 'N/A'}`;
+    coordsEl.appendChild(line2);
   }
 
   function _startTracking() {
     API.send('location', { action: 'startTracking' });
     App.toast('Location tracking started', 'info');
-    API.onMessage((msg) => {
+    if (_unsubscribe) _unsubscribe();
+    _unsubscribe = API.onMessage((msg) => {
       if (msg.type === 'event' && msg.payload && msg.payload.type === 'location') {
         _updateLocation(msg.payload.latitude, msg.payload.longitude, msg.payload.provider, msg.payload.accuracy);
       }
@@ -69,10 +76,12 @@ const Location = (() => {
 
   function _stopTracking() {
     API.send('location', { action: 'stopTracking' });
+    if (_unsubscribe) { _unsubscribe(); _unsubscribe = null; }
     App.toast('Location tracking stopped', 'info');
   }
 
   function destroy() {
+    if (_unsubscribe) { _unsubscribe(); _unsubscribe = null; }
     if (map) { map.remove(); map = null; marker = null; }
   }
 

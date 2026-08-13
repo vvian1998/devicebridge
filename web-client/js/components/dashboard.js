@@ -56,19 +56,19 @@ const Dashboard = (() => {
       <div class="stat-card">
         <div class="stat-label">CPU Temp</div>
         <div class="stat-value">${data.cpuTemp || 'N/A'}°C</div>
-        <div class="stat-sub">${data.cpuModel || ''}</div>
+        <div class="stat-sub">${_esc(data.cpuModel || '')}</div>
       </div>
     `;
 
     const info = document.getElementById('dash-device-info');
     if (info) {
       info.innerHTML = `
-        <div><strong>Model:</strong> ${data.model || 'Unknown'}</div>
-        <div><strong>Manufacturer:</strong> ${data.manufacturer || 'Unknown'}</div>
-        <div><strong>Android:</strong> ${data.androidVersion || 'Unknown'} (SDK ${data.sdk || '?'})</div>
+        <div><strong>Model:</strong> ${_esc(data.model || 'Unknown')}</div>
+        <div><strong>Manufacturer:</strong> ${_esc(data.manufacturer || 'Unknown')}</div>
+        <div><strong>Android:</strong> ${_esc(data.androidVersion || 'Unknown')} (SDK ${_esc(data.sdk || '?')})</div>
         <div><strong>Screen:</strong> ${data.screenWidth || '?'}x${data.screenHeight || '?'} @ ${data.density || '?'}dpi</div>
         <div><strong>Uptime:</strong> ${_fmtUptime(data.uptime || 0)}</div>
-        <div><strong>IP:</strong> ${data.ipAddress || 'Unknown'}</div>
+        <div><strong>IP:</strong> ${_esc(data.ipAddress || 'Unknown')}</div>
         <div><strong>Rooted:</strong> ${data.isRooted ? 'Yes' : 'No'}</div>
       `;
     }
@@ -82,6 +82,12 @@ const Dashboard = (() => {
     const h = Math.floor((s % 86400) / 3600);
     const m = Math.floor((s % 3600) / 60);
     return `${d}d ${h}h ${m}m`;
+  }
+
+  function _esc(s) {
+    const div = document.createElement('div');
+    div.textContent = String(s);
+    return div.innerHTML;
   }
 
   function destroy() {
