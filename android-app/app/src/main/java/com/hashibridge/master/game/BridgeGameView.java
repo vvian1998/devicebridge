@@ -24,6 +24,10 @@ public class BridgeGameView extends View {
         void onWin();
     }
 
+    public interface OnMoveListener {
+        void onMove();
+    }
+
     private static final int PAD_DP = 24;
     private static final float ISLAND_RADIUS_DP = 24;
     private static final float LINE_WIDTH_DP = 5;
@@ -42,6 +46,7 @@ public class BridgeGameView extends View {
 
     private BridgePuzzleGenerator.Puzzle puzzle;
     private OnWinListener winListener;
+    private OnMoveListener moveListener;
 
     private final Map<String, Integer> bridgeCounts = new HashMap<>();
     private int selected = -1;
@@ -117,6 +122,10 @@ public class BridgeGameView extends View {
         this.winListener = listener;
     }
 
+    public void setOnMoveListener(OnMoveListener listener) {
+        this.moveListener = listener;
+    }
+
     private String key(int a, int b) {
         return a < b ? a + "-" + b : b + "-" + a;
     }
@@ -140,8 +149,10 @@ public class BridgeGameView extends View {
 
         float w = getWidth();
         float h = getHeight();
-        cellW = (w - 2 * pad) / BridgePuzzleGenerator.GRID_W;
-        cellH = (h - 2 * pad) / BridgePuzzleGenerator.GRID_H;
+        int gw = (puzzle != null) ? puzzle.gridW : BridgePuzzleGenerator.GRID_W;
+        int gh = (puzzle != null) ? puzzle.gridH : BridgePuzzleGenerator.GRID_H;
+        cellW = (w - 2 * pad) / gw;
+        cellH = (h - 2 * pad) / gh;
 
         drawGridDots(canvas);
         drawBridges(canvas);
@@ -149,8 +160,10 @@ public class BridgeGameView extends View {
     }
 
     private void drawGridDots(Canvas canvas) {
-        for (int r = 0; r < BridgePuzzleGenerator.GRID_H; r++) {
-            for (int c = 0; c < BridgePuzzleGenerator.GRID_W; c++) {
+        int gw = (puzzle != null) ? puzzle.gridW : BridgePuzzleGenerator.GRID_W;
+        int gh = (puzzle != null) ? puzzle.gridH : BridgePuzzleGenerator.GRID_H;
+        for (int r = 0; r < gh; r++) {
+            for (int c = 0; c < gw; c++) {
                 float cx = pad + c * cellW + cellW / 2f;
                 float cy = pad + r * cellH + cellH / 2f;
                 canvas.drawCircle(cx, cy, 2 * density, paintGridDot);
@@ -316,6 +329,7 @@ public class BridgeGameView extends View {
         int current = bridgeCounts.getOrDefault(k, 0);
         int next = (current + 1) % 3;
         bridgeCounts.put(k, next);
+        if (moveListener != null) moveListener.onMove();
     }
 
     private void checkWin() {
