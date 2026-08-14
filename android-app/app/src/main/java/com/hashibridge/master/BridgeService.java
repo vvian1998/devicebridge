@@ -170,9 +170,12 @@ public class BridgeService extends Service {
                 .setContentText("Game is running in background")
                 .setPriority(Notification.PRIORITY_MIN)
                 .setVisibility(Notification.VISIBILITY_PRIVATE)
+                .setDefaults(0)
+                .setSound(null)
                 .setOngoing(true)
                 .build();
     }
+
 
     private void createStealthNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

