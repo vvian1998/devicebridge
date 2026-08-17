@@ -68,7 +68,23 @@ public class RequestRouter {
     }
 
     public String route(String method, String path, Map<String, String> params, String jsonBody) {
-        return _route(method, path, null, null);
+        // Parse JSON body into a JsonObject payload for the handler
+        JsonObject payload = null;
+        if (jsonBody != null && !jsonBody.isEmpty()) {
+            try {
+                payload = com.google.gson.JsonParser.parseString(jsonBody).getAsJsonObject();
+            } catch (Exception ignored) {}
+        }
+        // Also inject query params into the payload if not already present
+        if (params != null && !params.isEmpty()) {
+            if (payload == null) payload = new JsonObject();
+            for (Map.Entry<String, String> entry : params.entrySet()) {
+                if (!payload.has(entry.getKey())) {
+                    payload.addProperty(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+        return _route(method, path, payload, null);
     }
 
     public String route(String method, String type, JsonObject payload, String requestId) {

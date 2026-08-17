@@ -39,7 +39,7 @@ public class TerminalHandler {
         closeShell(terminalId);
 
         try {
-            Process process = Runtime.getRuntime().exec(new String[]{"sh", "-"});
+            Process process = Runtime.getRuntime().exec(new String[]{"sh"});
             shellProcesses.put(terminalId, process);
 
             Thread readerThread = new Thread(() -> {

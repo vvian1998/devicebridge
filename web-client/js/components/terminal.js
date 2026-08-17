@@ -72,8 +72,19 @@ const TerminalPanel = (() => {
 
     if (_unsubscribe) _unsubscribe();
     _unsubscribe = API.onMessage((msg) => {
-      if (msg.type === 'event' && msg.payload && msg.payload.terminalId === terminalId && msg.payload.data) {
-        if (term) term.write(msg.payload.data);
+      if (msg.type === 'event' && msg.payload) {
+        const evType = msg.payload.type;
+        if (evType === 'terminal_output') {
+          let inner = msg.payload.data;
+          if (typeof inner === 'string') {
+            try { inner = JSON.parse(inner); } catch (e) {}
+          }
+          const tid = (typeof inner === 'object' && inner) ? inner.terminalId : null;
+          const chunk = (typeof inner === 'object' && inner) ? inner.data : (typeof inner === 'string' ? inner : null);
+          if (tid === terminalId && chunk && term) {
+            term.write(chunk);
+          }
+        }
       }
     });
   }

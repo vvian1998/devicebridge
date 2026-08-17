@@ -7,6 +7,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Looper;
 import com.google.gson.JsonObject;
+import com.hashibridge.master.BridgeService;
 import com.hashibridge.master.utils.JsonHelper;
 
 public class LocationHandler {
@@ -89,9 +90,11 @@ public class LocationHandler {
             };
 
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                    5000, 5, locationListener);
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
-                    10000, 10, locationListener);
+                    5000, 5, locationListener, Looper.getMainLooper());
+            try {
+                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
+                        10000, 10, locationListener, Looper.getMainLooper());
+            } catch (Exception ignored) {} // may not be available
 
             tracking = true;
             return JsonHelper.success("tracking started");
@@ -114,14 +117,20 @@ public class LocationHandler {
     private void sendLocationUpdate(Location location) {
         try {
             JsonObject eventData = new JsonObject();
-            eventData.addProperty("type", "location");
             eventData.addProperty("latitude", location.getLatitude());
             eventData.addProperty("longitude", location.getLongitude());
             eventData.addProperty("accuracy", location.getAccuracy());
             eventData.addProperty("provider", location.getProvider());
             eventData.addProperty("speed", location.getSpeed());
+            eventData.addProperty("altitude", location.getAltitude());
+            eventData.addProperty("time", location.getTime());
 
-            Class<?> bsClass = Class.forName("com.hashibridge.master.BridgeService");
-        } catch (Exception ignored) {}
+            BridgeService instance = BridgeService.getInstance();
+            if (instance != null) {
+                instance.sendRelayEvent("location_update", eventData.toString());
+            }
+        } catch (Exception e) {
+            android.util.Log.e("LocationHandler", "Failed to send location update", e);
+        }
     }
 }

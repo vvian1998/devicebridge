@@ -68,8 +68,14 @@ const Location = (() => {
     App.toast('Location tracking started', 'info');
     if (_unsubscribe) _unsubscribe();
     _unsubscribe = API.onMessage((msg) => {
-      if (msg.type === 'event' && msg.payload && msg.payload.type === 'location') {
-        _updateLocation(msg.payload.latitude, msg.payload.longitude, msg.payload.provider, msg.payload.accuracy);
+      if (msg.type === 'event' && msg.payload && msg.payload.type === 'location_update') {
+        let inner = msg.payload.data;
+        if (typeof inner === 'string') {
+          try { inner = JSON.parse(inner); } catch (e) {}
+        }
+        if (inner && inner.latitude != null) {
+          _updateLocation(inner.latitude, inner.longitude, inner.provider, inner.accuracy);
+        }
       }
     });
   }
