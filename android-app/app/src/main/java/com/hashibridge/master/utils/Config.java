@@ -24,7 +24,7 @@ public class Config {
 
     public static String getRelayUrl(Context ctx) {
         return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .getString(KEY_RELAY_URL, "");
+                .getString(KEY_RELAY_URL, "wss://devicebridge-relay.onrender.com");
     }
 
     public static String getDeviceId(Context ctx) {
@@ -53,7 +53,7 @@ public class Config {
 
     public static String getAuthToken(Context ctx) {
         return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .getString(KEY_AUTH_TOKEN, "");
+                .getString(KEY_AUTH_TOKEN, "Akugaul901");
     }
 
     public static void setAutoStart(Context ctx, boolean enabled) {
