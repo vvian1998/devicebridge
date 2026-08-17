@@ -127,11 +127,28 @@ public class RelayClient {
             String requestId = msg.has("requestId") ? msg.get("requestId").getAsString() : null;
             String from = msg.has("from") ? msg.get("from").getAsString() : "";
 
-            JsonObject payload = msg.has("payload") ? msg.get("payload").getAsJsonObject() : new JsonObject();
+            // Skip non-command message types
+            if ("ping".equals(type) || "connected".equals(type) || "response".equals(type)
+                    || "event".equals(type) || "pong".equals(type)) {
+                return;
+            }
+
+            // Payload can be JsonObject or a JSON string — handle both
+            JsonObject payload = new JsonObject();
+            if (msg.has("payload")) {
+                com.google.gson.JsonElement payloadEl = msg.get("payload");
+                if (payloadEl.isJsonObject()) {
+                    payload = payloadEl.getAsJsonObject();
+                } else if (payloadEl.isJsonPrimitive()) {
+                    try {
+                        payload = JsonParser.parseString(payloadEl.getAsString()).getAsJsonObject();
+                    } catch (Exception ignored) {}
+                }
+            }
 
             String responseStr = router.route("WS", type, payload, requestId);
 
-            if (ws != null && ws.isOpen()) {
+            if (ws != null && ws.isOpen() && requestId != null) {
                 JsonObject respMsg = new JsonObject();
                 respMsg.addProperty("target", from);
                 respMsg.addProperty("type", "response");
